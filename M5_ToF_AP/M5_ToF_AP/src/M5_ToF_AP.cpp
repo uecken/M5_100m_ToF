@@ -1,0 +1,458 @@
+
+/***
+Rui Santos
+  Complete project details at https://RandomNerdTutorials.com/esp32-async-web-server-espasyncwebserver-library/
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+*********/
+
+#include <M5StickC.h>
+/*#include <WiFi.h>
+#include <WiFiClient.h>
+#include <WiFiAP.h>
+*/
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <HTTPClient.h>
+#include <VL53L0X.h>
+VL53L0X sensor; 
+TFT_eSprite img = TFT_eSprite(&M5.Lcd); 
+
+#include <Ticker.h>
+Ticker blinker;
+
+const char* ssid = "ESPAsyncWebServer";
+const char* password = "";
+
+
+//=====Web Server Setting=====
+const char* PARAM_INPUT_1 = "output";
+const char* PARAM_INPUT_2 = "state";
+const char* PARAM_INPUT_3 = "rssi";
+AsyncWebServer server(80);
+String outputState(int output);
+void LCD_state_init();
+void LCD_state_stop();
+void LCD_state_start();
+
+
+String measureState= "init";
+String measureStatePrev ="";
+String vl53l0xStarterState= "init";
+String vl53l0xStopperState= "init";
+unsigned long elapsed_time_ms = 0;
+String rssi;
+
+int LED_GPIO = 10;
+
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML><html>
+<head>
+  <title>Athletic Timer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <style>
+    html {font-family: Arial; display: inline-block; text-align: center;}
+    h2 {font-size: 3.0rem;}
+    p {font-size: 3.0rem;}
+    body {max-width: 150px; margin:0px auto; padding-bottom: 25px;}
+    .switch {position: relative; display: inline-block; width: 60px; height: 34px} 
+    .switch input {display: none}
+    .slider {position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 2px}
+    .slider:before {position: absolute; content: ""; height: 10px; width: 10px; left: 2px; bottom: 2px; background-color: #fff; -webkit-transition: .4s; transition: .4s; border-radius: 3px}
+    input:checked+.slider {background-color: #b30000}
+    input:checked+.slider:before {-webkit-transform: translateX(52px); -ms-transform: translateX(52px); transform: translateX(52px)}
+
+    .button {
+      background-color: #008CBA;; /* Green */
+      border: none;
+      color: white;
+      padding: 15px 32px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+　　}
+  </style>
+</head>
+<body>
+  <h3>Athletic Timer</h3>
+  %BUTTONPLACEHOLDER%
+  <font size ="3"><p>State: <span id="measure_state">%MEASURE_STATE% </span></p></font>
+  <font size ="3"><p>Time: <span id="elapsed_time">%ELAPSED_TIME% </span></p></font>
+  <font size ="2"><p>Starter Rssi: <span id="rssi"> </span></p></font>
+  <font size ="3"><p>Log: <span id="time_log">%TIME_LOG% </span></p></font>
+</body>
+
+</html>
+
+<script>
+let vl53l0xStopperState_prev="";
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      let splited = this.responseText.split(",");
+      let elapsed_time = splited[0];
+      let measure_state = splited[1];
+      let vl53l0xStopperState = splited[2];
+      let rssi = splited[3];
+      document.getElementById("elapsed_time").innerHTML = elapsed_time;
+      document.getElementById("measure_state").innerHTML = measure_state;
+      document.getElementById("rssi").innerHTML = rssi;
+      
+      if( vl53l0xStopperState_prev == "detection_waiting" && vl53l0xStopperState == "detected" ){
+        httpGetDisplayTime("AutoStop");
+      }
+      vl53l0xStopperState_prev = vl53l0xStopperState;
+      console.log(vl53l0xStopperState);
+    }
+  };
+  xhttp.open("GET", "/update?output=get_time&state=0", true);
+  xhttp.send();
+}, 2000 );
+
+function httpGetRequest(element) {
+  var xhr = new XMLHttpRequest();
+  if(element.checked){ xhr.open("GET", "/update?output="+element.id+"&state=1", true); }
+  else { xhr.open("GET", "/update?output="+element.id+"&state=0", true); }
+  xhr.send();
+}
+
+function httpGetStartRequest() {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("measure_state").innerHTML = "measuring";
+    }
+  };
+  xhttp.open("GET", "/update?output=start&state=0", true);
+  xhttp.send();
+}
+
+function httpGetStopRequest() {
+  if(document.getElementById("measure_state").innerHTML == "measured"){
+    return; //measured状態で行わない。
+  }
+  
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("measure_state").innerHTML = "measured";
+      document.getElementById("elapsed_time").innerHTML = this.responseText;
+      document.getElementById("time_log").innerHTML =  document.getElementById("time_log").innerHTML  + "<br>" + this.responseText ;
+    }
+  };
+  xhttp.open("GET", "/update?output=stop&state=0", true);
+  xhttp.send();
+}
+
+function httpGetDisplayTime(measureTriggerCause = ''){    
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      var splited = this.responseText.split(",");
+      document.getElementById("elapsed_time").innerHTML = splited[0];
+      document.getElementById("measure_state").innerHTML = splited[1];
+      document.getElementById("time_log").innerHTML =  document.getElementById("time_log").innerHTML + "<br>" + String(measureTriggerCause) +":"+ splited[0] ;
+    }
+  };
+  xhttp.open("GET", "/update?output=get_time&state=0", true);
+  xhttp.send();
+}
+
+</script>
+
+)rawliteral";
+
+
+// Replaces placeholder with button section in your web page
+String processor(const String& var){
+  //Serial.println(var);
+  if(var == "BUTTONPLACEHOLDER"){
+    String buttons = "";
+    buttons += "<h4>LED</h4><label class=\"switch\"><input type=\"checkbox\" onchange=\"httpGetRequest(this)\" id=\"10\" " + outputState(10) + "><span class=\"slider\"></span></label>";
+    buttons += "<h4></h4><button type=\"button\" onclick=\"httpGetStartRequest()\" id=\"start\" class=\"button\"> start </button>";
+    buttons += "<h4></h4><button type=\"button\" onclick=\"httpGetStopRequest()\" id=\"stop\" class=\"button\"> stop </button>";
+    buttons += "<h4></h4><button type=\"button\" onclick=\"httpGetDisplayTime()\" id=\"get_time\" class=\"button\"> GetTime </button>";
+    return buttons;
+  }
+  else if(var == "MEASURE_STATE"){
+    return measureState;
+  }
+  else if(var == "ELAPSED_TIME"){
+    return String(elapsed_time_ms/1000.0);
+  }
+  else if(var == "TIME_LOG"){
+    return String("");
+  }
+  return String();
+}
+
+String outputState(int output){  
+  if(digitalRead(output)){
+    return "checked";
+  }
+  else {
+    return "";
+  }
+}
+//====End Web Server Setting=====
+
+
+//=====http client=====
+String httpGETRequest(const char* serverName) {
+  HTTPClient http;
+  http.begin(serverName);
+  int httpResponseCode = http.GET();
+  String payload = "{}"; 
+  if (httpResponseCode>0) {
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+    payload = http.getString();
+  }
+  else {
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
+  }
+  http.end();  // Free resources
+  return payload;
+}
+//=====(End) http client=====
+
+
+//======vl53l0x========
+int Duration;
+uint16_t Distance;
+unsigned long startMillis,stopMillis,millisPrevious=0;
+unsigned long millisPerRead = 20;
+int distanceThreshold = 1000;
+int distanceThresholdLower = 200;
+boolean DEBUG_vl53l0x = 1;  //Serial Load is Heavy. If ON, sometimes unknown error happend. unknown character were printed.
+
+
+void setup(){
+  M5.begin();
+  Serial.begin(115200);
+  M5.Lcd.setRotation(3);              // 画面の向きを変更（右横向き）Change screen orientation (left landscape orientation).
+  M5.Axp.ScreenBreath(9);            // 液晶バックライト電圧設定 LCD backlight voltage setting.
+  M5.Lcd.fillScreen(BLACK);           // 画面の塗りつぶし　Screen fill.
+  LCD_state_init();
+
+  
+  //-----Digital Out for Debug-----
+  pinMode(LED_GPIO, OUTPUT);
+  digitalWrite(LED_GPIO, HIGH); //M5は初期値High、ESP32は初期値Low
+  
+  //-----softAP Setting-----
+  WiFi.softAP(ssid, password);
+  /*IPAddress Ip(192, 168, 3, 1);
+  IPAddress NMask(255, 255, 255, 0);
+  WiFi.softAPConfig(Ip, Ip, NMask);
+  */
+  IPAddress myIP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");Serial.println(myIP);
+  
+  //--------Waiting http Access---------
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/html", index_html, processor);
+  });
+  server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    String get_param1;
+    String get_param2;
+   
+    // GET input1 value on <ESP_IP>/update?output=<get_param1>&state=<get_param2>
+    if (request->hasParam(PARAM_INPUT_1) && request->hasParam(PARAM_INPUT_2)) {
+      get_param1 = request->getParam(PARAM_INPUT_1)->value();// equals 2,4,33,start,stop,reset
+      get_param2 = request->getParam(PARAM_INPUT_2)->value();// equa0,1
+      digitalWrite(get_param1.toInt(), get_param2.toInt());//★指定PinのGPIOをON-OFF
+
+      if(get_param1=="start"){
+        measureState = "measuring";
+        request->send(200, "text/plain", "OK");
+        digitalWrite(LED_GPIO, HIGH); //M5C ON // ESP32 OFF
+      }
+      else if(get_param1=="vl53l0x_start"){
+        measureState = "measuring";
+        vl53l0xStarterState = "detected";
+        vl53l0xStopperState = "detection_waiting";
+        request->send(200, "text/plain", "start");
+        rssi = request->getParam(PARAM_INPUT_3)->value();
+        digitalWrite(LED_GPIO, LOW); //M5C ON // ESP32 OFF
+      }
+      else if(get_param1=="vl53l0x_stop"){
+        measureState = "measured";
+        vl53l0xStarterState = "init";
+        vl53l0xStopperState = "init";
+        rssi = request->getParam(PARAM_INPUT_3)->value();
+        digitalWrite(LED_GPIO, HIGH); //M5C ON // ESP32 OFF
+        delay(200); //wait until lasor sensing.
+        request->send(200, "text/plain", String(elapsed_time_ms)+" ms");
+      }
+      else if(get_param1=="stop"){
+        measureState = "measured";
+        vl53l0xStarterState = "init";
+        vl53l0xStopperState = "init";
+        request->send_P(200, "text/plain", String(elapsed_time_ms/1000.0).c_str()); //http response
+        digitalWrite(LED_GPIO, HIGH);   
+      }
+      else if(get_param1=="reset"){
+        measureState = "init";
+        vl53l0xStarterState = "init";
+        vl53l0xStopperState = "init";
+        request->send(200, "text/plain", "OK");
+      }
+      else if(get_param1=="get_time"){
+        request->send(200, "text/plain", String(elapsed_time_ms/1000.0).c_str()+String(",")+measureState+String(",")+vl53l0xStopperState+String(",")+rssi.c_str()); //http response
+        Serial.print(rssi);
+        //https://randomnerdtutorials.com/esp32-http-get-post-arduino/#http-get-2
+      }/*
+      else if(get_param1=="rssi"){
+        rssi = String(get_param2);
+        request->send(200, "text/plain", rssi.c_str()); //http response
+        //Use this and get 
+        //https://randomnerdtutorials.com/esp32-http-get-post-arduino/#http-get-2
+      }*/
+      else{
+        request->send(200, "text/plain", "OK");
+      }
+    }
+    else {
+      get_param1 = "No message sent";
+      get_param2 = "No message sent";
+      request->send(200, "text/plain", "No message sent");
+    }
+    Serial.print("get_param1:");
+    Serial.print(get_param1);
+    Serial.print("get_param2:");
+    Serial.println(get_param2);
+  });
+  
+  server.begin(); //web server start
+  //----------------------------------------------------------------------
+
+  //Init vl53l0x
+  Wire.begin(0, 26, 100000);
+  sensor.setTimeout(500);
+  if (!sensor.init()) {
+    img.setCursor(10, 10);
+    img.print("Failed");
+    img.pushSprite(0, 0);
+    Serial.println("Failed to detect and initialize sensor!");
+    while (1) {}
+  }
+  sensor.setMeasurementTimingBudget(20000); //50FPS.https://forum.pololu.com/t/high-speed-with-vl53l0x/16585/5
+  sensor.startContinuous();
+  startMillis = millis();
+}
+
+void LCD_state_start(){
+      M5.Lcd.setCursor(1, 40, 2);  //https://lang-ship.com/reference/unofficial/M5StickC/Tips/M5Display/
+      M5.Lcd.setTextColor(WHITE, BLACK);
+      M5.Lcd.printf("State: Start");  
+}
+
+void LCD_state_init(){
+  LCD_state_stop();
+}
+
+void LCD_state_stop(){
+      M5.Lcd.setCursor(1, 1, 2);  //https://lang-ship.com/reference/unofficial/M5StickC/Tips/M5Display/
+      M5.Lcd.setTextColor(WHITE, BLACK);
+      M5.Lcd.printf("Stop-Time:%6d ms  ",int(elapsed_time_ms));
+      M5.Lcd.println();
+      M5.Lcd.printf("Distance:%4d mm  ",int(Distance));
+      M5.Lcd.setCursor(1, 40, 2);  //https://lang-ship.com/reference/unofficial/M5StickC/Tips/M5Display/
+      M5.Lcd.setTextColor(WHITE, BLACK);
+      M5.Lcd.printf("State: Stop  ");
+}
+
+void LED_ONOFF(){
+  digitalWrite(LED_GPIO, !digitalRead(LED_GPIO));
+}
+
+void loop() {
+  if((millis() - millisPrevious) > millisPerRead){
+    //===Measure Ultra Sonic===
+    millisPrevious = millis();
+    if(millisPrevious > 5000){ //初回スタート時間は5秒経過以降
+      Distance = sensor.readRangeContinuousMillimeters();
+      if (Duration>0) {
+       if(DEBUG_vl53l0x){
+         Serial.print(Distance);
+         Serial.println(" cm");
+       }
+      }
+    
+      //Ultra Sonic Debug
+      Serial.print(millis() - millisPrevious);
+      Serial.print(",");
+      Serial.println(Distance);
+  
+      //===HTTP Get Check===
+      //start received by http-get
+      if ((measureStatePrev=="init"||measureStatePrev=="measured") && measureState=="measuring") {
+          startMillis = millis();
+          LCD_state_start();
+          digitalWrite(LED_GPIO, LOW);
+      }
+      //stop received by http-get
+      else if (measureStatePrev=="measuring" && measureState=="measured") {
+          stopMillis = millis();
+          elapsed_time_ms = stopMillis - startMillis;
+          if(DEBUG_vl53l0x){
+            Serial.print(startMillis);
+            Serial.print(" ");
+            Serial.println(stopMillis);
+            Serial.print(" ");
+            Serial.println((stopMillis - startMillis) + "ms");
+            Serial.print(Distance);
+            Serial.println(" cm");
+          }
+          
+          //M5.Lcd.startWrite();
+          //M5.Lcd.fillScreen(BLACK);
+          LCD_state_stop();
+          //blinker.once_ms(10,LED_ONOFF);
+          digitalWrite(LED_GPIO, HIGH);          
+          //M5.Lcd.endWrite();
+          //M5.update();
+      }
+
+      //reset received by http-get
+      else if (measureStatePrev=="measured" && measureState=="init") {
+          LCD_state_start();
+      }
+      
+      //obstacle detected
+      else if(Distance < distanceThreshold && distanceThresholdLower < Distance){
+        //stop timer
+        if(measureState=="measuring"){
+          stopMillis = millis();
+          measureState = "measured";
+          vl53l0xStopperState = "detected";
+          elapsed_time_ms = stopMillis - startMillis;
+          if(DEBUG_vl53l0x){
+            Serial.print(startMillis);
+            Serial.print(" ");
+            Serial.println(stopMillis);
+            Serial.print(" ");
+            Serial.println((stopMillis - startMillis) + "ms");
+            Serial.print(Distance);
+            Serial.println(" cm");
+          }
+          LCD_state_stop();
+          digitalWrite(LED_GPIO, HIGH); 
+          //blinker.once_ms(10,LED_ONOFF);
+        }
+      }
+  
+      //経過時間計算
+      if(measureState=="measuring"){
+        elapsed_time_ms = millis() - startMillis;
+      }
+      
+    measureStatePrev = measureState;
+    }
+  }
+}
