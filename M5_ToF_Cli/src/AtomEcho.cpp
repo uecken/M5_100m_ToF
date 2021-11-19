@@ -8,7 +8,8 @@
 #include "wav_set.h"
 //#include "wav_pistol.h" 
 //#include "wav_pistol_100ms.h"
-#include "wav_pistol_monoral_faststart_monoral.h" 
+#include "wav_pistol_monoral_faststart_monoral.h"
+#include "wav_pistol_monoral_faststart_monoral_vol50percent.h" 
 
 // on your mark https://commons.nicovideo.jp/material/nc141161
 // set https://commons.nicovideo.jp/material/nc141162
@@ -16,8 +17,11 @@
 
 //const unsigned char *wavList[] = {wav_on_your_mark, wav_set, wav_pistol};
 //const size_t wavSize[] = {sizeof(wav_on_your_mark), sizeof(wav_set), sizeof(wav_pistol)};
-const unsigned char *wavList[] = {wav_on_your_mark, wav_set, pistol_monoral_faststart_monoral};
-const size_t wavSize[] = {sizeof(wav_on_your_mark), sizeof(wav_set), sizeof(pistol_monoral_faststart_monoral)};
+//const unsigned char *wavList[] = {wav_on_your_mark, wav_set, pistol_monoral_faststart_monoral};
+//const size_t wavSize[] = {sizeof(wav_on_your_mark), sizeof(wav_set), sizeof(pistol_monoral_faststart_monoral)};
+const unsigned char *wavList[] = {wav_on_your_mark, wav_set,  wav_pistol_monoral_faststart_monoral_vol50percent};
+const size_t wavSize[] = {sizeof(wav_on_your_mark), sizeof(wav_set), sizeof(wav_pistol_monoral_faststart_monoral_vol50percent)};
+
 
 int wav = 0;
 
@@ -106,12 +110,12 @@ void loop() {
 #endif
 
 
-
+boolean SOUND_DEBUG_ATOM = false;
 void AtomEcho::playSound(int sound_num){
     size_t bytes_written;
 
     InitI2SSpeakerOrMic(MODE_SPK);
-    Serial.print("---play sound---");
+    if(SOUND_DEBUG_ATOM) Serial.println("---play sound---");
 
     // Random Play
     wav = sound_num; //0 or 1 or 2

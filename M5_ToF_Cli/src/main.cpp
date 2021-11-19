@@ -1,12 +1,23 @@
 //#include <M5StickC.h>
-//#include <M5StickC.h>
-//#include <WiFi.h>
 #include <M5Atom.h>
+
 #include <WiFiMulti.h> 
 #include <HTTPClient.h>
-#include <VL53L0X.h>
-VL53L0X sensor;
-//TFT_eSprite img = TFT_eSprite(&M5.Lcd); 
+
+//#include <VL53L0X.h>
+#include "Ultrasonic.h"
+#if defined(VL53L0X_h)
+  VL53L0X sensor; 
+  //TFT_eSprite img = TFT_eSprite(&M5.Lcd); 
+#elif defined(Ultrasonic_H)
+  #ifdef _M5STICKC_H_
+    Ultrasonic ultrasonic(33);
+  #endif
+  #ifdef _M5ATOM_H_
+    Ultrasonic ultrasonic(32);
+  #endif
+#endif
+
 
 const char* ssid = "ESPAsyncWebServer";
 const char* pass = "";
@@ -18,8 +29,8 @@ unsigned long millisPerRead = 20; //10ms以下稀にフリーズする
 String measureState= "init";
 String measureStatePrev ="";
 String vl53l0xState ="init";
-int distanceThreshold = 1000; //cm
-int distanceThresholdLower = 200;
+int distanceThreshold = 1000; //mm
+int distanceThresholdLower = 200; //mm
 boolean DEBUG_ULTRASONIC = 0;
 unsigned long elapsed_time_ms = 0;
 unsigned long httpGetExecTime=0;
@@ -42,8 +53,10 @@ WiFiMulti wifiMulti;
 String rssi;
 String payload;
 
-boolean WAV_DEBUG = true;
-
+boolean WAV_DEBUG = false;
+boolean SOUND_DEBUG = false;
+boolean HTTP_DEBUG = false;
+boolean TIME_DEBUG = true;
 
 void httpGetStatePolling();
 void httpGetUltraSonic(String mode,boolean make_sound);
@@ -81,63 +94,81 @@ void setup() {
   }
   pinMode(10, OUTPUT);
 
-  //Init vl53l0x sensor
+  //=====Init vl53l0x sensor==========
+
+#if defined(VL53L0X_h)
+  //Init vl53l0x
   #ifdef _M5STICKC_H_
   Wire.begin(0, 26, 100000);
   //Wire.begin(32, 33, 100000); 
   #endif
-
   #ifdef _M5ATOM_H_
   Wire.begin(26, 32, 100000);
   #endif
 
   sensor.setTimeout(500);
   if (!sensor.init()) {
-    //img.setCursor(10, 10);
-    //img.print("Failed");
-    //img.pushSprite(0, 0);
+    img.setCursor(10, 10);
+    img.print("Failed");
+    img.pushSprite(0, 0);
     Serial.println("Failed to detect and initialize sensor!");
-    //while (1) {}
+    while (1) {}
   }
   sensor.setMeasurementTimingBudget(20000); //50FPS.https://forum.pololu.com/t/high-speed-with-vl53l0x/16585/5
   sensor.startContinuous();
-  startMillis = millis();
+#endif
 
-
-  init();
   atomecho.InitI2SSpeakerOrMic();
 }
 
 void loop() {
+  delay(1); 
 
-  if(M5.Btn.wasPressed()){
-    //drawpix(uint8_t Number, CRGB Color)
-    //M5.drawpix(27, 'red')
-    
+  if(sense_mode =="start" && M5.Btn.wasReleasefor(2000)){
+    sense_mode = "lap";
+  }
+  else if(sense_mode =="lap" && M5.Btn.wasReleasefor(2000)){
+    sense_mode = "start";
+  }
+  else if(sense_mode =="start" && M5.Btn.wasReleasefor(1000)){
+    delay(3000); //10秒待機
+    atomecho.playSound(0); // On your marks
+    delay(15000+(rand() % 5)*1000); //15~20秒待機
+    atomecho.playSound(1); //  set...
+    delay(2500 + (rand() % 10)*100); //2.5~3.5秒待機
+    httpGetUltraSonic(sense_mode,true);
+    atomecho.playSound(2); // BAN! (pistor)
+  }
+  else if(M5.Btn.wasReleasefor(20)){
+    /*
     atomecho.playSound(0);
     delay(2000);
     atomecho.playSound(1);    
     delay(2000);
-    
-    sense_mode = "start";
+    */
+    if(TIME_DEBUG) Serial.println("start:"+String(millis()));
+    long tmp_start_millis = millis();
     httpGetUltraSonic(sense_mode,true);
+    long tmp_stop_millis = millis();
+    if(TIME_DEBUG) Serial.println("httpget+sound:"+String(tmp_stop_millis-tmp_start_millis) + "ms");
+    if(TIME_DEBUG) Serial.println("stop:"+String(millis()));
+
     //delay(1000);
     //atomecho.playSound(2); //43.5ms
-
   }
   
   //========WiFi Connection Check========
   currentWiFiMillis = millis();
   if (currentWiFiMillis - previousWiFiMillis >= WiFiCheckInterval) {
     wifiState = wifiMulti.run();
-    Serial.println(wifiState);
+    //Serial.println(wifiState);
     if(wifiState != WL_CONNECTED){
       Serial.println("Reconnecting to WiFi...");
       //M5C_LED_ON_and_OFF(500);
     }else if(wifiState == WL_CONNECTED){
-      Serial.print("WiFi connected.");
+      //Serial.print("WiFi connected.");
       rssi = String(WiFi.RSSI());
-      Serial.println(rssi);
+      //Serial.println(rssi);
       //draw_payload();
     }
     previousWiFiMillis = currentWiFiMillis;
@@ -153,15 +184,20 @@ void loop() {
   }
 */
   //======Sensing and send by http Get ===========
-  if (!WAV_DEBUG && (wifiState == WL_CONNECTED)&& ((millis() - millisPrevious) > millisPerRead) ) {
+  if (sense_mode == "lap" && !WAV_DEBUG && (wifiState == WL_CONNECTED)&& ((millis() - millisPrevious) > millisPerRead) ) {
     millisPrevious = millis();
-    Distance = sensor.readRangeContinuousMillimeters();
+      #if defined(VL53L0X_h)
+        Distance = sensor.readRangeContinuousMillimeters();
+      #elif defined(Ultrasonic_H) 
+        Distance = ultrasonic.MeasureInCentimeters()*10; // two measurements should keep an interval
+      #endif
 
     //1秒以内の連続http get禁止
     if(((millis() - httpGetExecTime) > 1000) && (distanceThresholdLower < Distance) && (Distance < distanceThreshold)){
       httpGetExecTime = millis();
       measureState = "measuring";
       httpGetUltraSonic(sense_mode,true);
+      //atomecho.playSound(2); //43.5ms
       //draw_executed_mode(sense_mode);
       //draw_executed_mode("sense ");
       //draw_payload();
@@ -172,7 +208,7 @@ void loop() {
     Serial.println(Distance);
   }
 
-/*
+#ifdef _M5STICKC_H_
   if(M5.BtnB.wasPressed()){
     httpGetUltraSonic("stop"); 
 
@@ -186,10 +222,12 @@ void loop() {
     //M5C_LED_ON_and_OFF(500);
   }
   
- 
   //====Auto Measure Mode変更====
   if(M5.Axp.GetBtnPress()==1){ //1秒以上押した
     if(sense_mode == "start"){
+      sense_mode = "lap";
+      //draw_sense_mode(sense_mode);
+    }else if sense_mode == "lap"{
       sense_mode = "stop";
       //draw_sense_mode(sense_mode);
     }else{
@@ -197,22 +235,24 @@ void loop() {
       //draw_sense_mode(sense_mode);
     }
   }
-  */
+#endif
 
   M5.update();
 }
 
 void httpGetUltraSonic(String mode, boolean make_sound){
+    long tmp_start_millis = millis();
     HTTPClient http;
     http.begin("http://192.168.4.1/update?output=vl53l0x_"+mode+"&state=0&rssi="+String(rssi)); // starter
     //http.begin("http://192.168.4.1/update?output=vl53l0x_stop&state=0&rssi="+String(rssi)); // stopper
     int httpCode = http.GET(); // Make the request
-    if(make_sound) atomecho.playSound(2); //43.5ms
+    long tmp_stop_millis = millis();
+    if(TIME_DEBUG) Serial.println("httpget:"+String(tmp_stop_millis-tmp_start_millis) + "ms");
 
     if (httpCode > 0) { //Check for the returning code
         payload = http.getString();
-        Serial.println(httpCode);
-        Serial.println(payload);
+        if(HTTP_DEBUG) Serial.println(httpCode);
+        if(HTTP_DEBUG) Serial.println(payload);
       }
     else {
       Serial.println("Error on HTTP request");
@@ -246,7 +286,7 @@ void httpGetStatePolling(){
 */
 
 
-#ifdef DeviceIsM5StickC
+#ifdef _M5STICKC_H_
 void init(){
   digitalWrite(10,HIGH);//M5C OFF
 }

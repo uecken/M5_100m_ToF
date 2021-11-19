@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": "M5_ToF_Cli"
+		},
+		{
+			"name": "M5_ToF_AP",
+			"path": "M5_ToF_AP"
+		},
+		{
+			"path": "vl53l1x"
+		},
+		{
+			"name": "Grove_UltraSonic_DistanceSensor",
+			"path": "Grove_UltraSonic_DistanceSensor"
+		}
+	],
+	"settings": {}
+}

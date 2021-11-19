@@ -1,6 +1,9 @@
 {
 	"folders": [
 		{
+			"path": ".."
+		},
+		{
 			"name": "M5_ToF_AP",
 			"path": "."
 		}
