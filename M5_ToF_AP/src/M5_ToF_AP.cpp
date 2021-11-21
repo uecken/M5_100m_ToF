@@ -247,7 +247,7 @@ boolean DEBUG_vl53l0x = 1;  //Serial Load is Heavy. If ON, sometimes unknown err
   int distanceThresholdLower = 200; //mm
   unsigned long millisPerRead = 20;
 #elif defined(Ultrasonic_H)
-  unsigned long millisPerRead = 20;
+  unsigned long millisPerRead = 10;
   int distanceThreshold = 1000; //mm
   int distanceThresholdLower = 5; //mm  
 #endif
@@ -283,7 +283,7 @@ void setup(){
   server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
     String get_param1;
     String get_param2;
-   
+    
     // GET input1 value on <ESP_IP>/update?output=<get_param1>&state=<get_param2>
     if (request->hasParam(PARAM_INPUT_1) && request->hasParam(PARAM_INPUT_2)) {
       get_param1 = request->getParam(PARAM_INPUT_1)->value();// equals 2,4,33,start,stop,reset
@@ -296,11 +296,12 @@ void setup(){
         digitalWrite(LED_GPIO, HIGH); //M5C ON // ESP32 OFF
       }
       else if(get_param1=="vl53l0x_start"){
+        request->send(200, "text/plain", "start");
+        delay(110);//stopperがhttpgetを受信してから、starterの音声出力までの遅延が約150msのため測定開始を遅らせる
         measureState = "measuring";
         vl53l0xStarterState = "detected";
         vl53l0xStopperState = "detection_waiting";
         long httpget_rx_time = millis();
-        request->send(200, "text/plain", "start");
         rssi = request->getParam(PARAM_INPUT_3)->value();
         if(HTTP_TIME_DEBUG) Serial.println("start:"+String(millis()));
         long httpget_return_time = millis();
@@ -314,8 +315,8 @@ void setup(){
         vl53l0xStopperState = "init";
         rssi = request->getParam(PARAM_INPUT_3)->value();
         digitalWrite(LED_GPIO, HIGH); //M5C ON // ESP32 OFF
-        //delay(20); //wait until lasor sensing.
         request->send(200, "text/plain", String(elapsed_time_ms/1000.0).c_str());
+        //delay(20); //wait until lasor sensing.
       }
       else if(get_param1=="stop"){
         measureState = "measured";
@@ -409,19 +410,22 @@ void LED_ONOFF(){
 
 long millisPrevious_Distance_dbg = 0;
 int Distance_prev = 0;
+long Distance_dbg_intervalms = 2000;
 void loop() {
   delay(1);
   if((millis() - millisPrevious) > millisPerRead){
     //===Measure Ultra Sonic===
     
     if(millisPrevious > 5000){ //初回スタート時間は5秒経過以降
-      portENTER_CRITICAL_ISR(&mutex);
-      #if defined(VL53L0X_h)
-        Distance = sensor.readRangeContinuousMillimeters();
-      #elif defined(Ultrasonic_H)       
-        Distance = ultrasonic.MeasureInCentimeters()*10; // two measurements should keep an interval
-      #endif
-      portEXIT_CRITICAL_ISR(&mutex);
+      if (measureState=="measuring" || (millis() - millisPrevious_Distance_dbg) > Distance_dbg_intervalms ) {
+        portENTER_CRITICAL_ISR(&mutex);
+        #if defined(VL53L0X_h)
+          Distance = sensor.readRangeContinuousMillimeters();
+        #elif defined(Ultrasonic_H)       
+          Distance = ultrasonic.MeasureInCentimeters()*10; // two measurements should keep an interval
+        #endif
+        portEXIT_CRITICAL_ISR(&mutex);
+      }
 
       if (Duration>0) {
        if(DEBUG_vl53l0x){
@@ -437,7 +441,7 @@ void loop() {
         Serial.println(Distance);
       }
 
-      if((millis() - millisPrevious_Distance_dbg) > 500){
+      if((millis() - millisPrevious_Distance_dbg) > Distance_dbg_intervalms ){
         M5.Lcd.setCursor(1, 50, 2);  //https://lang-ship.com/reference/unofficial/M5StickC/Tips/M5Display/
         M5.Lcd.setTextColor(WHITE, BLACK);
         M5.Lcd.printf("Distance: %d mm", Distance);
@@ -450,8 +454,8 @@ void loop() {
       if ((measureStatePrev=="init"||measureStatePrev=="measured") && measureState=="measuring") {
           startMillis = millis();
           lap_time_ms = 0;
-          LCD_state_start();
           digitalWrite(LED_GPIO, LOW);
+          LCD_state_start();
       }
       //stop received by http-get
       else if (measureStatePrev=="measuring" && measureState=="measured") {
@@ -462,16 +466,17 @@ void loop() {
             Serial.print(" ");
             Serial.println(stopMillis);
             Serial.print(" ");
-            Serial.println((stopMillis - startMillis) + "ms");
+            Serial.println(String(stopMillis - startMillis) + "ms");
             Serial.print(Distance);
             Serial.println(" mm");
           }
           
           //M5.Lcd.startWrite();
           //M5.Lcd.fillScreen(BLACK);
+          digitalWrite(LED_GPIO, HIGH);  
           LCD_state_stop();
           //blinker.once_ms(10,LED_ONOFF);
-          digitalWrite(LED_GPIO, HIGH);          
+        
           //M5.Lcd.endWrite();
           //M5.update();
       }
@@ -486,20 +491,19 @@ void loop() {
       else if(abs(Distance - Distance_prev) > 300){
         if(measureState=="measuring"){
           //stop timer
+          stopMillis = millis();
           elapsed_time_ms = stopMillis - startMillis;
           if(DEBUG_vl53l0x){
             Serial.print(startMillis);
-            Serial.print(" ");
+            Serial.print(",");
             Serial.println(stopMillis);
-            Serial.print(" ");
-            Serial.println((stopMillis - startMillis) + "ms");
+            Serial.print(",");
+            Serial.println(String(stopMillis - startMillis) + "ms");
             Serial.print(Distance);
             Serial.println(" mm");
           }
-          LCD_state_stop();
           digitalWrite(LED_GPIO, HIGH); 
-          stopMillis = millis();
-
+          LCD_state_stop();
           measureState = "measured";
           vl53l0xStopperState = "detected";
           

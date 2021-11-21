@@ -71,6 +71,9 @@ void M5C_LED_ON_and_OFF(int ontime);
 #include <AtomEcho.h>
 AtomEcho atomecho;
 
+portMUX_TYPE mutex = portMUX_INITIALIZER_UNLOCKED;
+
+
 void setup() {
   Serial.begin(115200);
   M5.begin();
@@ -132,12 +135,14 @@ void loop() {
   }
   else if(sense_mode =="start" && M5.Btn.wasReleasefor(1000)){
     delay(3000); //10秒待機
+    
     atomecho.playSound(0); // On your marks
     delay(15000+(rand() % 5)*1000); //15~20秒待機
     atomecho.playSound(1); //  set...
-    delay(2500 + (rand() % 10)*100); //2.5~3.5秒待機
+    delay(2000 + (rand() % 10)*100); //2.0~3.0秒待機
     httpGetUltraSonic(sense_mode,true);
     atomecho.playSound(2); // BAN! (pistor)
+    
   }
   else if(M5.Btn.wasReleasefor(20)){
     /*
@@ -186,11 +191,13 @@ void loop() {
   //======Sensing and send by http Get ===========
   if (sense_mode == "lap" && !WAV_DEBUG && (wifiState == WL_CONNECTED)&& ((millis() - millisPrevious) > millisPerRead) ) {
     millisPrevious = millis();
+      portENTER_CRITICAL_ISR(&mutex);
       #if defined(VL53L0X_h)
         Distance = sensor.readRangeContinuousMillimeters();
       #elif defined(Ultrasonic_H) 
         Distance = ultrasonic.MeasureInCentimeters()*10; // two measurements should keep an interval
       #endif
+      portEXIT_CRITICAL_ISR(&mutex);
 
     //1秒以内の連続http get禁止
     if(((millis() - httpGetExecTime) > 1000) && (distanceThresholdLower < Distance) && (Distance < distanceThreshold)){
