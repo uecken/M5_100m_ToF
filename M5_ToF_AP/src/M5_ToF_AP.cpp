@@ -397,7 +397,7 @@ void LCD_state_stop(){
       M5.Lcd.println();
       M5.Lcd.printf("Lap-Time:%4.2f s  ",int(lap_time_ms)/1000.0);
       M5.Lcd.println();
-      M5.Lcd.printf("Distance:%4d mm  ",int(Distance));
+      M5.Lcd.printf("Stop-Distance:%4d mm  ",int(Distance));
       M5.Lcd.setCursor(1, 65, 2);  //https://lang-ship.com/reference/unofficial/M5StickC/Tips/M5Display/
       M5.Lcd.setTextColor(WHITE, BLACK);
       M5.Lcd.printf("State: Stop  ");
@@ -440,7 +440,7 @@ void loop() {
       if((millis() - millisPrevious_Distance_dbg) > 500){
         M5.Lcd.setCursor(1, 50, 2);  //https://lang-ship.com/reference/unofficial/M5StickC/Tips/M5Display/
         M5.Lcd.setTextColor(WHITE, BLACK);
-        M5.Lcd.printf("Distance_dbg: %d mm", Distance);
+        M5.Lcd.printf("Distance: %d mm", Distance);
         millisPrevious_Distance_dbg = millis();
       }
 
@@ -484,11 +484,8 @@ void loop() {
       //obstacle detected
       //else if(Distance < distanceThreshold && distanceThresholdLower < Distance){
       else if(abs(Distance - Distance_prev) > 300){
-        //stop timer
         if(measureState=="measuring"){
-          stopMillis = millis();
-          measureState = "measured";
-          vl53l0xStopperState = "detected";
+          //stop timer
           elapsed_time_ms = stopMillis - startMillis;
           if(DEBUG_vl53l0x){
             Serial.print(startMillis);
@@ -501,6 +498,11 @@ void loop() {
           }
           LCD_state_stop();
           digitalWrite(LED_GPIO, HIGH); 
+          stopMillis = millis();
+
+          measureState = "measured";
+          vl53l0xStopperState = "detected";
+          
           //blinker.once_ms(10,LED_ONOFF);
         }
       }
