@@ -3,7 +3,8 @@
 https://protopedia.net/prototype/2356
 
 # System 
-!{width:400px}[M5C ToF システム構成図](https://user-images.githubusercontent.com/5786149/142982073-b2ecb059-dedb-43ef-8739-01e7926e152c.jpg)
+![M5C ToF (5)](https://user-images.githubusercontent.com/5786149/142982305-ce9f3539-be8f-4392-8dd1-efe2959238be.jpg|width=400px)
+
 
  With in 50 meter, WiFi Repeater is not needed.
  Starter selects better WiFi AP to communicate with Stopper.
