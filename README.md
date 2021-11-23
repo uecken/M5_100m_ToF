@@ -3,7 +3,7 @@
 https://protopedia.net/prototype/2356
 
 # System 
-![M5C ToF (5)](https://user-images.githubusercontent.com/5786149/142982305-ce9f3539-be8f-4392-8dd1-efe2959238be.jpg|width=400px)
+![M5C ToF (5)](https://user-images.githubusercontent.com/5786149/142982305-ce9f3539-be8f-4392-8dd1-efe2959238be.jpg | width=400)
 
 
  With in 50 meter, WiFi Repeater is not needed.
