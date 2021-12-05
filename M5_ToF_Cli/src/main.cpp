@@ -17,8 +17,6 @@
     Ultrasonic ultrasonic(32);
   #endif
 #endif
-
-
 const char* ssid = "ESPAsyncWebServer";
 const char* pass = "";
 
@@ -139,7 +137,7 @@ void loop() {
     atomecho.playSound(0); // On your marks
     delay(15000+(rand() % 5)*1000); //15~20秒待機
     atomecho.playSound(1); //  set...
-    delay(2000 + (rand() % 10)*100); //2.0~3.0秒待機
+    delay(2000 + (rand() % 7)*100); //2.0~2.7秒待機
     httpGetUltraSonic(sense_mode,true);
     atomecho.playSound(2); // BAN! (pistor)
     

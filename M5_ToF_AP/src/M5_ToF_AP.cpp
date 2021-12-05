@@ -266,7 +266,6 @@ void setup(){
   //-----Digital Out for Debug-----
   pinMode(LED_GPIO, OUTPUT);
   digitalWrite(LED_GPIO, HIGH); //M5は初期値High、ESP32は初期値Low
-  
   //-----softAP Setting-----
   WiFi.softAP(ssid, password);
   /*IPAddress Ip(192, 168, 3, 1);
@@ -305,18 +304,18 @@ void setup(){
         rssi = request->getParam(PARAM_INPUT_3)->value();
         if(HTTP_TIME_DEBUG) Serial.println("start:"+String(millis()));
         long httpget_return_time = millis();
-        if(HTTP_TIME_DEBUG)Serial.println("http-process-time:"+String(httpget_return_time - httpget_rx_time));
+        if(HTTP_TIME_DEBUG) Serial.println("http-process-time:"+String(httpget_return_time - httpget_rx_time));
         if(HTTP_TIME_DEBUG) Serial.println("stop:"+String(millis()));
-        digitalWrite(LED_GPIO, LOW); //M5C ON // ESP32 OFF
+        //digitalWrite(LED_GPIO, LOW); //M5C ON // ESP32 OFF //timestartと同時点灯させる
       }
       else if(get_param1=="vl53l0x_stop"){
         measureState = "measured";
         vl53l0xStarterState = "init";
         vl53l0xStopperState = "init";
         rssi = request->getParam(PARAM_INPUT_3)->value();
-        digitalWrite(LED_GPIO, HIGH); //M5C ON // ESP32 OFF
+        //digitalWrite(LED_GPIO, HIGH); //M5C ON // ESP32 OFF //timestopと同時に消灯させる
         request->send(200, "text/plain", String(elapsed_time_ms/1000.0).c_str());
-        //delay(20); //wait until lasor sensing.
+        //delay(20); //wait until lasor sensing.　
       }
       else if(get_param1=="stop"){
         measureState = "measured";
@@ -417,6 +416,16 @@ void loop() {
     //===Measure Ultra Sonic===
     
     if(millisPrevious > 5000){ //初回スタート時間は5秒経過以降
+      //===HTTP Get Check===
+      //start received by http-get
+      if ((measureStatePrev=="init"||measureStatePrev=="measured") && measureState=="measuring") {
+          startMillis = millis();
+          lap_time_ms = 0;
+          digitalWrite(LED_GPIO, LOW);
+          LCD_state_start();
+      }
+
+      //===Distance Check===
       if (measureState=="measuring" || (millis() - millisPrevious_Distance_dbg) > Distance_dbg_intervalms ) {
         portENTER_CRITICAL_ISR(&mutex);
         #if defined(VL53L0X_h)
@@ -450,16 +459,11 @@ void loop() {
 
   
       //===HTTP Get Check===
-      //start received by http-get
-      if ((measureStatePrev=="init"||measureStatePrev=="measured") && measureState=="measuring") {
-          startMillis = millis();
-          lap_time_ms = 0;
-          digitalWrite(LED_GPIO, LOW);
-          LCD_state_start();
-      }
       //stop received by http-get
-      else if (measureStatePrev=="measuring" && measureState=="measured") {
+      if (measureStatePrev=="measuring" && measureState=="measured") {
           stopMillis = millis();
+          digitalWrite(LED_GPIO, HIGH);  
+          LCD_state_stop();
           elapsed_time_ms = stopMillis - startMillis;
           if(DEBUG_vl53l0x){
             Serial.print(startMillis);
@@ -473,10 +477,7 @@ void loop() {
           
           //M5.Lcd.startWrite();
           //M5.Lcd.fillScreen(BLACK);
-          digitalWrite(LED_GPIO, HIGH);  
-          LCD_state_stop();
           //blinker.once_ms(10,LED_ONOFF);
-        
           //M5.Lcd.endWrite();
           //M5.update();
       }
@@ -493,17 +494,19 @@ void loop() {
           //stop timer
           stopMillis = millis();
           elapsed_time_ms = stopMillis - startMillis;
+          digitalWrite(LED_GPIO, HIGH); 
+          LCD_state_stop();
+
           if(DEBUG_vl53l0x){
             Serial.print(startMillis);
             Serial.print(",");
             Serial.println(stopMillis);
             Serial.print(",");
-            Serial.println(String(stopMillis - startMillis) + "ms");
+            Serial.print(String(stopMillis - startMillis) + "ms,");
             Serial.print(Distance);
             Serial.println(" mm");
           }
-          digitalWrite(LED_GPIO, HIGH); 
-          LCD_state_stop();
+
           measureState = "measured";
           vl53l0xStopperState = "detected";
           
