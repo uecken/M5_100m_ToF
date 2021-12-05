@@ -6,6 +6,132 @@ Rui Santos
   copies or substantial portions of the Software.
 *********/
 
+//=========LTE=============
+#include "M5_SIM7080G.h"
+M5_SIM7080G DTU;
+String readstr;
+//DTU.Init(&Serial2, 22, 21);
+DTU.Init(&Serial2, 32, 33);
+
+
+void SIM7080G_setup(){
+    DTU.Init(&Serial2, 22, 21);
+    // DTU.Init();
+    //Reset Module
+    DTU.sendMsg("AT+CRESET\r\n");
+    delay(5000);
+    //M5.dis.drawpix(0, 0xff0000);
+
+    DTU.sendMsg("AT+CREG?\r\n");
+    readstr = DTU.waitMsg(1000);
+    Serial.print(readstr);
+
+    DTU.sendMsg("AT+CGDCONT=1,\"IP\",\"iijmio.jp\"\r\n");
+    readstr = DTU.waitMsg(1000);
+    Serial.print(readstr);
+
+    DTU.sendMsg("AT+CNCFG=1,1,\"iijmio.jp\",\"mio@iij\",\"iij\",3\r\n");
+    readstr = DTU.waitMsg(1000);
+    Serial.print(readstr);
+
+    DTU.sendMsg("AT+COPS=1,2,\"44010\"\r\n");
+    readstr = DTU.waitMsg(1000);
+    Serial.print(readstr);
+
+    //=====Initial Attach========
+    DTU.sendMsg("AT+CGAUTH=1,3,\"iij\",\"mio@iij\"\r\n");
+    readstr = DTU.waitMsg(1000);
+    Serial.print(readstr);
+
+    DTU.sendMsg("AT+CNMP=38\r\n");
+    readstr = DTU.waitMsg(1000);
+    Serial.print(readstr);
+
+    DTU.sendMsg("AT+CMNB=1\r\n");
+    readstr = DTU.waitMsg(1000);
+    Serial.print(readstr);
+
+    DTU.sendMsg("AT+CPSI?\r\n");
+    readstr = DTU.waitMsg(1000);
+    Serial.print(readstr);
+
+    DTU.sendMsg("AT+CNACT=0,1\r\n");
+    readstr = DTU.waitMsg(1000);
+    Serial.print(readstr);
+
+    DTU.sendMsg("AT+CNTP\r\n");
+    readstr = DTU.waitMsg(1000);
+    Serial.print(readstr);
+}
+
+
+void SIM7080G_httpget(String key_values)
+{
+    //APN Command
+    //https://next-step.asia/2020/12/simcom%E7%A4%BE%E3%81%AEsim7080g%E3%81%A7%E3%81%95%E3%81%8F%E3%82%89%E3%82%BB%E3%82%AD%E3%83%A5%E3%82%A2%E3%83%A2%E3%83%90%E3%82%A4%E3%83%AB%E3%81%AE%E9%80%9A%E4%BF%A1%E3%83%86%E3%82%B9%E3%83%88/
+
+    delay(5000);
+
+    DTU.sendMsg("AT+CNACT?\r\n");
+    readstr = DTU.waitMsg(3000);
+    Serial.print(readstr);
+
+    //Request UE System information
+    //+CPSI: LTE CAT-M1,Online,440-10,0x9000,152121616,78,EUTRAN-BAND1,276,4,4,-15,-109,-80,10
+    DTU.sendMsg("AT+CPSI?\r\n");
+    readstr = DTU.waitMsg(3000);
+    Serial.print(readstr);
+
+    DTU.sendMsg("AT+CLBS=4,0\r\n");
+    readstr = DTU.waitMsg(3000);
+    Serial.print(readstr);
+
+
+    DTU.sendMsg("AT+SNPING4=\"google.com\",1,16,1000\r\n");
+    readstr = DTU.waitMsg(3000);
+    Serial.print(readstr);
+
+    //=====HTTPコマンドを直接実行======
+    DTU.sendMsg("AT+SHCONF=\"URL\",\"http://35.76.198.152\"\r\n");
+    readstr = DTU.waitMsg(5000);
+    Serial.print(readstr);
+
+    DTU.sendMsg("AT+SHCONF=\"BODYLEN\",1024\r\n");
+    readstr = DTU.waitMsg(1000);
+    Serial.print(readstr);
+
+    DTU.sendMsg("AT+SHCONF=\"HEADERLEN\",350\r\n");
+    readstr = DTU.waitMsg(1000);
+    Serial.print(readstr);
+    
+    DTU.sendMsg("AT+SHCONN\r\n");
+    readstr = DTU.waitMsg(3000);
+    Serial.print(readstr);
+
+    DTU.sendMsg("AT+SHSTATE?\r\n");
+    readstr = DTU.waitMsg(1000);
+    Serial.print(readstr);
+
+    String send_msg = "AT+SHREQ=\"/report?" + key_values + "\",1\r\n";
+    DTU.sendMsg(send_msg);
+    //DTU.sendMsg("AT+SHREQ=\"/report?id=1234&status=detected\",1\r\n");
+     //http://35.76.198.152/report?id=1234&status=detected
+    readstr = DTU.waitMsg(1000);
+    Serial.print(readstr);
+
+    DTU.sendMsg("AT+CGREG?\r\n");
+    readstr = DTU.waitMsg(1000);
+    Serial.print(readstr);    
+
+    //Close Application Network
+    DTU.sendMsg("AT+CNCAT=0,0\r\n");
+    readstr = DTU.waitMsg(3000);
+    Serial.print(readstr);
+}
+//=========LTE=============
+
+
+
 #include <M5StickC.h>
 /*#include <WiFi.h>
 #include <WiFiClient.h>
@@ -378,6 +504,10 @@ void setup(){
   sensor.startContinuous();
 #endif
   startMillis = millis();
+
+
+  //LTE
+  void SIM7080G_setup();
 }
 
 void LCD_state_start(){
@@ -406,6 +536,8 @@ void LCD_state_stop(){
 void LED_ONOFF(){
   digitalWrite(LED_GPIO, !digitalRead(LED_GPIO));
 }
+
+
 
 long millisPrevious_Distance_dbg = 0;
 int Distance_prev = 0;
@@ -517,11 +649,17 @@ void loop() {
       //経過時間計算
       if(measureState=="measuring"){
         elapsed_time_ms = millis() - startMillis;
-      }
-    
-    Distance_prev = Distance;
-    measureStatePrev = measureState;
+      }    
+      Distance_prev = Distance;
+      measureStatePrev = measureState;
+
+      //LTEデータ送信
+      http_msg = "time_ms="+String(elapsed_time_ms);
+      SIM7080G_httpget(http_msg);
+
     }
     millisPrevious = millis();
   }
+
+  
 }
