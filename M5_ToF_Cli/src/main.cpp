@@ -1,8 +1,10 @@
+
 //#include <M5StickC.h>
 #include <M5Atom.h>
 
 #include <WiFiMulti.h> 
 #include <HTTPClient.h>
+#include <esp_wifi.h>
 
 //#include <VL53L0X.h>
 #include "Ultrasonic.h"
@@ -84,8 +86,11 @@ void setup() {
   #endif
 
   delay(10);
+  ESP_ERROR_CHECK( esp_wifi_set_protocol( WIFI_IF_STA, WIFI_PROTOCOL_11B ) );
   wifiMulti.addAP("ESPAsyncWebServer", "");
   wifiMulti.addAP("ESP32", "");
+  //https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#esp32-wi-fi-configuration
+  //https://gist.github.com/yaqwsx/ac662c9b600ef39a802da0be1b25d32d
   Serial.println("Connecting Wifi...");
   if(wifiMulti.run() == WL_CONNECTED) {
       Serial.println("");
