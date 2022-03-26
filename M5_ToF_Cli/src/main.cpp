@@ -1,8 +1,10 @@
+
 //#include <M5StickC.h>
 #include <M5Atom.h>
 
 #include <WiFiMulti.h> 
 #include <HTTPClient.h>
+#include <esp_wifi.h>
 
 //#include <VL53L0X.h>
 #include "Ultrasonic.h"
@@ -75,6 +77,7 @@ portMUX_TYPE mutex = portMUX_INITIALIZER_UNLOCKED;
 void setup() {
   Serial.begin(115200);
   M5.begin();
+  Serial.println("M5 begined");
 
   #ifdef _M5STICKC_H_
   M5.Lcd.setRotation(3);              // 画面の向きを変更（右横向き）Change screen orientation (left landscape orientation).
@@ -83,9 +86,14 @@ void setup() {
   draw_sense_mode(sense_mode);
   #endif
 
+  Serial.println("WiFi Setting...");
   delay(10);
+  int a = esp_wifi_set_protocol( WIFI_IF_STA, WIFI_PROTOCOL_11B );
+  //ESP_ERROR_CHECK( esp_wifi_set_protocol( WIFI_IF_STA, WIFI_PROTOCOL_11B ) ); //Error happend
   wifiMulti.addAP("ESPAsyncWebServer", "");
   wifiMulti.addAP("ESP32", "");
+  //https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#esp32-wi-fi-configuration
+  //https://gist.github.com/yaqwsx/ac662c9b600ef39a802da0be1b25d32d
   Serial.println("Connecting Wifi...");
   if(wifiMulti.run() == WL_CONNECTED) {
       Serial.println("");
@@ -132,12 +140,13 @@ void loop() {
     sense_mode = "start";
   }
   else if(sense_mode =="start" && M5.Btn.wasReleasefor(1000)){
+    atomecho.playSound(3);    
     delay(3000); //10秒待機
     
     atomecho.playSound(0); // On your marks
-    delay(15000+(rand() % 5)*1000); //15~20秒待機
+    delay(13000+(rand() % 2)*1000); //13~15秒待機
     atomecho.playSound(1); //  set...
-    delay(2000 + (rand() % 7)*100); //2.0~2.7秒待機
+    delay(1300 + (rand() % 5)*100); //1.3~1.8秒待機
     httpGetUltraSonic(sense_mode,true);
     atomecho.playSound(2); // BAN! (pistor)
     
@@ -156,6 +165,7 @@ void loop() {
     if(TIME_DEBUG) Serial.println("httpget+sound:"+String(tmp_stop_millis-tmp_start_millis) + "ms");
     if(TIME_DEBUG) Serial.println("stop:"+String(millis()));
 
+    atomecho.playSound(4); 
     //delay(1000);
     //atomecho.playSound(2); //43.5ms
   }

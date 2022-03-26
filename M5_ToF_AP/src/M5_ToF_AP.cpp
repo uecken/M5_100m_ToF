@@ -14,6 +14,7 @@ Rui Santos
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <HTTPClient.h>
+#include <esp_wifi.h>
 
 //#include <VL53L0X.h>
 #include "Ultrasonic.h"
@@ -267,7 +268,11 @@ void setup(){
   pinMode(LED_GPIO, OUTPUT);
   digitalWrite(LED_GPIO, HIGH); //M5は初期値High、ESP32は初期値Low
   //-----softAP Setting-----
+  WiFi.mode( WIFI_AP );//for AP mode
+    //here config LR mode
+  int a= esp_wifi_set_protocol( WIFI_IF_AP, WIFI_PROTOCOL_11B );
   WiFi.softAP(ssid, password);
+  
   /*IPAddress Ip(192, 168, 3, 1);
   IPAddress NMask(255, 255, 255, 0);
   WiFi.softAPConfig(Ip, Ip, NMask);

@@ -4,6 +4,8 @@
 #include "AtomEcho.h"
 #include <M5Atom.h>
 #include <driver/i2s.h> //After read M5Atom.h read driver/i2s without avoiding compile // error: #error "include FreeRTOS.h"
+#include "wav_kati_50_16bit.h"
+#include "wav_pilon_50_16bit.h"
 #include "wav_on_your_mark.h"
 #include "wav_set.h"
 //#include "wav_pistol.h" 
@@ -19,8 +21,8 @@
 //const size_t wavSize[] = {sizeof(wav_on_your_mark), sizeof(wav_set), sizeof(wav_pistol)};
 //const unsigned char *wavList[] = {wav_on_your_mark, wav_set, pistol_monoral_faststart_monoral};
 //const size_t wavSize[] = {sizeof(wav_on_your_mark), sizeof(wav_set), sizeof(pistol_monoral_faststart_monoral)};
-const unsigned char *wavList[] = {wav_on_your_mark, wav_set,  wav_pistol_monoral_faststart_monoral_vol50percent};
-const size_t wavSize[] = {sizeof(wav_on_your_mark), sizeof(wav_set), sizeof(wav_pistol_monoral_faststart_monoral_vol50percent)};
+const unsigned char *wavList[] = {wav_on_your_mark, wav_set,  wav_pistol_monoral_faststart_monoral_vol50percent,pilon,kati};
+const size_t wavSize[] = {sizeof(wav_on_your_mark), sizeof(wav_set), sizeof(wav_pistol_monoral_faststart_monoral_vol50percent),sizeof(pilon),sizeof(kati)};
 
 
 int wav = 0;
