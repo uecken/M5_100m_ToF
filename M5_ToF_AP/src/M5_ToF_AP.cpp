@@ -271,6 +271,7 @@ void setup(){
   WiFi.mode( WIFI_AP );//for AP mode
     //here config LR mode
   int a= esp_wifi_set_protocol( WIFI_IF_AP, WIFI_PROTOCOL_11B );
+  int b = esp_wifi_config_80211_tx_rate(WIFI_IF_AP,WIFI_PHY_RATE_1M_L);
   WiFi.softAP(ssid, password);
   
   /*IPAddress Ip(192, 168, 3, 1);

@@ -127,5 +127,5 @@ void AtomEcho::playSound(int sound_num){
     i2s_zero_dma_buffer(SPEAKER_I2S_NUMBER);
 
     // Set Mic Mode
-    InitI2SSpeakerOrMic(MODE_MIC);
+    //InitI2SSpeakerOrMic(MODE_MIC);
 }

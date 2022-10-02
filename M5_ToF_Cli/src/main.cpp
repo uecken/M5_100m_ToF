@@ -108,11 +108,11 @@ void setup() {
 #if defined(VL53L0X_h)
   //Init vl53l0x
   #ifdef _M5STICKC_H_
-  Wire.begin(0, 26, 100000);
+  Wire.begin(0, 26, 100000U);
   //Wire.begin(32, 33, 100000); 
   #endif
   #ifdef _M5ATOM_H_
-  Wire.begin(26, 32, 100000);
+  Wire.begin(26, 32, 100000U);
   #endif
 
   sensor.setTimeout(500);
