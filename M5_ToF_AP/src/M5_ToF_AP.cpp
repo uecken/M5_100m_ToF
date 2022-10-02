@@ -302,7 +302,8 @@ void setup(){
       }
       else if(get_param1=="vl53l0x_start"){
         request->send(200, "text/plain", "start");
-        delay(110);//stopperがhttpgetを受信してから、starterの音声出力までの遅延が約150msのため測定開始を遅らせる
+        //delay(110);//stopperがhttpgetを受信してから、starterの音声出力までの遅延が約150msのため測定開始を遅らせる
+        delay(6);//11b 1Mbps
         measureState = "measuring";
         vl53l0xStarterState = "detected";
         vl53l0xStopperState = "detection_waiting";
