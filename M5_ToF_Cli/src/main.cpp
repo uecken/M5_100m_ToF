@@ -75,6 +75,13 @@ portMUX_TYPE mutex = portMUX_INITIALIZER_UNLOCKED;
 
 
 void setup() {
+  #ifdef _M5STICKC_H_
+  pinMode(10, OUTPUT);
+  #elif defined(_M5ATOM_H_)
+  pinMode(21, OUTPUT); //Buzzer
+  #endif
+  digitalWrite(21,LOW);//M5C OFF
+
   Serial.begin(115200);
   M5.begin();
   Serial.println("M5 begined");
@@ -101,7 +108,7 @@ void setup() {
       Serial.println("IP address: ");
       Serial.println(WiFi.localIP());
   }
-  pinMode(10, OUTPUT);
+
 
   //=====Init vl53l0x sensor==========
 
@@ -140,7 +147,8 @@ void loop() {
     sense_mode = "start";
   }
   else if(sense_mode =="start" && M5.Btn.wasReleasefor(1000)){
-    atomecho.playSound(3);    
+    atomecho.playSound(3);
+    digitalWrite(21,LOW); 
     delay(3000); //10秒待機
     
     atomecho.playSound(0); // On your marks
@@ -149,7 +157,14 @@ void loop() {
     delay(1300 + (rand() % 5)*100); //1.3~1.8秒待機
     httpGetUltraSonic(sense_mode,true);
     atomecho.playSound(2); // BAN! (pistor)
-    
+
+    #ifdef _M5ATOM_H_
+    digitalWrite(21,HIGH);
+    delay(100);
+    digitalWrite(21,LOW);
+    #endif
+
+
   }
   else if(M5.Btn.wasReleasefor(20)){
     /*
