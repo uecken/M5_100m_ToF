@@ -19,3 +19,13 @@ Write the ToF AP to M5 Atom Echo.
 
 # Sensor  
 https://www.seeedstudio.com/Grove-Ultrasonic-Distance-Sensor.html![M5C ToF システム構成図](https://user-images.githubusercontent.com/5786149/142982037-6bcaad4c-5f5a-4f8e-b08d-79fbb1261ddd.jpg)
+
+
+# Update history Memo
+- 2022/10/16a
+  - 親機から子機のHTTP返答が遅くなる、または子機のHTTP受信が遅くなる
+    - → 15回目の送信以降で遅くなる
+    - → ☆Serial.available()かどうか、全て判定しないと遅くなる
+  - 90mで-92dBmとぎりぎり
+  - Start状態で、Start押されたときAPのLEDをON/OFFさせたい　→ LAPモードにして確認すればよい
+  - M5Stampの消費電力が少なすぎて、バッテリーからの供給電源が落ちてしまう。リチウム3本にするか？
