@@ -6,7 +6,9 @@ Rui Santos
   copies or substantial portions of the Software.
 *********/
 
-#include <M5StickC.h>
+//#include <M5StickC.h>
+#include <M5StickCPlus.h>
+
 /*#include <WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiAP.h>
@@ -41,6 +43,9 @@ String outputState(int output);
 void LCD_state_init();
 void LCD_state_stop();
 void LCD_state_start();
+void LCD_state_lap();
+void LED_ONOFF();
+void LED_ONOFF_Reverse();
 
 
 String measureState= "init";
@@ -272,6 +277,8 @@ void setup(){
     //here config LR mode
   int a= esp_wifi_set_protocol( WIFI_IF_AP, WIFI_PROTOCOL_11B );
   int b = esp_wifi_config_80211_tx_rate(WIFI_IF_AP,WIFI_PHY_RATE_1M_L);
+  int c = esp_wifi_set_max_tx_power(80);//20dBm https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_wifi.html
+
   WiFi.softAP(ssid, password);
   
   /*IPAddress Ip(192, 168, 3, 1);
@@ -296,8 +303,8 @@ void setup(){
       digitalWrite(get_param1.toInt(), get_param2.toInt());//★指定PinのGPIOをON-OFF
 
       if(get_param1=="start"){
-        measureState = "measuring";
         request->send(200, "text/plain", "OK");
+        measureState = "measuring";
         digitalWrite(LED_GPIO, HIGH); //M5C ON // ESP32 OFF
       }
       else if(get_param1=="vl53l0x_start"){
@@ -339,7 +346,12 @@ void setup(){
       }
       else if(get_param1=="get_lap" || get_param1=="vl53l0x_lap"){
         lap_time_ms = elapsed_time_ms;
+        digitalWrite(LED_GPIO, !digitalRead(LED_GPIO));
+        rssi = request->getParam(PARAM_INPUT_3)->value();
         request->send(200, "text/plain", String(elapsed_time_ms/1000.0).c_str()+String(",")+measureState+String(",")+vl53l0xStopperState+String(",")+rssi.c_str()+String(",")+String(lap_time_ms/1000.0).c_str()); //http response
+        LCD_state_lap();
+        delay(50);
+        digitalWrite(LED_GPIO, !digitalRead(LED_GPIO));
       }
       else if(get_param1=="get_time"){
         request->send(200, "text/plain", String(elapsed_time_ms/1000.0).c_str()+String(",")+measureState+String(",")+vl53l0xStopperState+String(",")+rssi.c_str()+String(",")+String(lap_time_ms/1000.0).c_str()); //http response
@@ -390,8 +402,20 @@ void setup(){
 void LCD_state_start(){
       M5.Lcd.setCursor(1, 65, 2);  //https://lang-ship.com/reference/unofficial/M5StickC/Tips/M5Display/
       M5.Lcd.setTextColor(WHITE, BLACK);
-      M5.Lcd.printf("State: Start");  
+      M5.Lcd.printf("State: Start");
+      M5.Lcd.setCursor(1, 85, 2);
+      M5.Lcd.printf("RSSI:%s",rssi);
 }
+
+void LCD_state_lap(){
+      //M5.Lcd.setCursor(1, 65, 2);  //https://lang-ship.com/reference/unofficial/M5StickC/Tips/M5Display/
+      M5.Lcd.setTextColor(WHITE, BLACK);
+      M5.Lcd.setCursor(1, 20, 2); 
+      M5.Lcd.printf("Lap-Time:%4.2f s  ",int(lap_time_ms)/1000.0);
+      M5.Lcd.setCursor(1, 105, 2);
+      M5.Lcd.printf("RSSI:%s (lapper)   ",rssi);
+}
+
 
 void LCD_state_init(){
   LCD_state_stop();
@@ -401,17 +425,25 @@ void LCD_state_stop(){
       M5.Lcd.setCursor(1, 1, 2);  //https://lang-ship.com/reference/unofficial/M5StickC/Tips/M5Display/
       M5.Lcd.setTextColor(WHITE, BLACK);
       M5.Lcd.printf("Stop-Time:%4.2f s  ",int(elapsed_time_ms)/1000.0);
-      M5.Lcd.println();
+      M5.Lcd.setCursor(1, 20, 2); 
       M5.Lcd.printf("Lap-Time:%4.2f s  ",int(lap_time_ms)/1000.0);
       M5.Lcd.println();
       M5.Lcd.printf("Stop-Distance:%4d mm  ",int(Distance));
       M5.Lcd.setCursor(1, 65, 2);  //https://lang-ship.com/reference/unofficial/M5StickC/Tips/M5Display/
       M5.Lcd.setTextColor(WHITE, BLACK);
       M5.Lcd.printf("State: Stop  ");
+      M5.Lcd.setCursor(1, 85, 2);
+      M5.Lcd.printf("RSSI:%s (starter)   ",rssi);
 }
 
 void LED_ONOFF(){
   digitalWrite(LED_GPIO, !digitalRead(LED_GPIO));
+}
+
+void LED_ONOFF_Reverse(){
+    digitalWrite(LED_GPIO, !digitalRead(LED_GPIO));
+    delay(100);
+    digitalWrite(LED_GPIO, !digitalRead(LED_GPIO));
 }
 
 long millisPrevious_Distance_dbg = 0;

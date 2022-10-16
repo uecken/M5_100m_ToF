@@ -53,10 +53,10 @@ WiFiMulti wifiMulti;
 String rssi;
 String payload;
 
-boolean WAV_DEBUG = false;
-boolean SOUND_DEBUG = false;
-boolean HTTP_DEBUG = false;
-boolean TIME_DEBUG = true;
+  boolean WAV_DEBUG = false;
+  boolean SOUND_DEBUG = false;
+  boolean HTTP_DEBUG = false;
+  boolean TIME_DEBUG = true;
 
 void httpGetStatePolling();
 void httpGetUltraSonic(String mode,boolean make_sound);
