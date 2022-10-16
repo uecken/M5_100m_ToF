@@ -432,13 +432,8 @@ void LCD_state_stop(){
       M5.Lcd.setCursor(1, 65, 2);  //https://lang-ship.com/reference/unofficial/M5StickC/Tips/M5Display/
       M5.Lcd.setTextColor(WHITE, BLACK);
       M5.Lcd.printf("State: Stop  ");
-<<<<<<< HEAD
       M5.Lcd.setCursor(1, 85, 2);
       M5.Lcd.printf("RSSI:%s (starter)   ",rssi);
-=======
-      M5.Lcd.println();
-      M5.Lcd.printf("RSSI: %2d",rssi.toInt());
->>>>>>> 59b36949698080637850f644e8b8838b524047c4
 }
 
 void LED_ONOFF(){

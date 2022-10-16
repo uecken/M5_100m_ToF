@@ -22,7 +22,7 @@ int c = esp_wifi_set_max_tx_power(80); //20dBm https://docs.espressif.com/projec
 String rssi;
 
 #define TASK_NAME_WIFI "WiFiCheckTask"
-#define TASK_SLEEP_WIFI 1000 //1s delay
+#define TASK_SLEEP_WIFI 5000 //1s delay
 static void WiFiCheckLoop(void* arg);
 
 //=====US=====
@@ -109,10 +109,10 @@ void loop(){
     if(long_press_2s){//長押し処理(2s)
       Buzzer_ONOFF(3);
       sense_mode = "start";
-      ESP.restart(); //何故か徐々にHTTPの返答が遅くなるため、Restartさせる
+      //ESP.restart(); //何故か徐々にHTTPの返答が遅くなるため、Restartさせる
     } else{//短押し処理
     //==http send test===
-      httpGetUltraSonic("start",true);
+      httpGetUltraSonic(sense_mode,true);
       LED_Buzzer_ONOFF();
       //Buzzer_ONOFF(1);
     }
@@ -184,7 +184,7 @@ static void WiFiCheckLoop(void* arg){
     uint32_t entryTime = millis();
 
     if(WiFi.status() != WL_CONNECTED){
-      Serial.println("Reconnecting to WiFi...");
+      if(Serial.available())Serial.println("Reconnecting to WiFi...");
       WiFi.reconnect();
       //Automatically Reconnect to AP...
     }else if(WiFi.status() == WL_CONNECTED){
@@ -205,7 +205,7 @@ void httpGetUltraSonic(String mode, boolean make_sound){
     //http.begin("http://192.168.4.1/update?output=vl53l0x_stop&state=0&rssi="+String(rssi)); // stopper
     int httpCode = http.GET(); // Make the request
     long tmp_stop_millis = millis();
-    if(TIME_DEBUG) Serial.println("httpget:"+String(tmp_stop_millis-tmp_start_millis) + "ms");
+    if(TIME_DEBUG && Serial.available()) Serial.println("httpget:"+String(tmp_stop_millis-tmp_start_millis) + "ms");
 
     if (httpCode > 0) { //Check for the returning code
         payload = http.getString();
@@ -213,8 +213,8 @@ void httpGetUltraSonic(String mode, boolean make_sound){
         if(HTTP_DEBUG) Serial.println(payload);
       }
     else {
-      Serial.println("Error on HTTP request");
-      Serial.println(httpCode);
+      if(Serial.available())Serial.println("Error on HTTP request");
+      if(Serial.available())Serial.println(httpCode);
     }
     http.end(); //Free the resources
 }
