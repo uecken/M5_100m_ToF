@@ -22,7 +22,7 @@ https://www.seeedstudio.com/Grove-Ultrasonic-Distance-Sensor.html![M5C ToF シ�
 
 
 # Update history Memo
-- 2022/10/16a
+- 2022/10/16
   - 親機から子機のHTTP返答が遅くなる、または子機のHTTP受信が遅くなる
     - → 15回目の送信以降で遅くなる
     - → ☆Serial.available()かどうか、全て判定しないと遅くなる
