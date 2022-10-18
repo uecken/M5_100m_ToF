@@ -47,10 +47,12 @@ void LED_Buzzer_ONOFF();
 
 //=====HTTP Setting=====
 #include <HTTPClient.h>
+boolean DEBUG = false; //WiFi
 boolean WAV_DEBUG = false;
 boolean SOUND_DEBUG = false;
 boolean HTTP_DEBUG = false;
-boolean TIME_DEBUG = true;
+boolean TIME_DEBUG = false;
+boolean US_DEBUG = false;
 String payload;
 void httpGetUltraSonic(String mode,boolean make_sound);
 
@@ -60,9 +62,9 @@ void httpGetUltraSonic(String mode,boolean make_sound);
 
 void setup() {
   M5.begin();
-  Serial.begin(115200);
   Serial.println();
-  Serial.println("Configuring WiFi...");
+  if(DEBUG)Serial.println("Configuring WiFi...");
+  LED_Buzzer_ONOFF();
 
   #ifdef defined(CLI_XIAO_ESP32C3)
   #elif defined(CLI_M5STAMP)
@@ -151,10 +153,10 @@ static void UltrasonicLoop(void* arg){
     uint32_t entryTime = millis();
     if(sense_mode == "lap"){
       portENTER_CRITICAL_ISR(&mutex);
-      distance = ultrasonic.MeasureInCentimeters()*10;
+      distance = ultrasonic.MeasureInMillimeters(15000);
       portEXIT_CRITICAL_ISR(&mutex);
       
-      if(Serial.available())Serial.println("US measuring:"+String(distance));
+      if(US_DEBUG)Serial.println("US measuring:"+String(distance)+",ElapsedTime:"+String(millis() - entryTime)+",Millis:"+String(millis()));
       if((distance_prev - distance) >  distance_rel_th_ms){//距離が短くなった時のみ
           //measure_state = "measuring";
           httpGetUltraSonic(sense_mode,true);
@@ -180,7 +182,7 @@ static void WiFiCheckLoop(void* arg){
     uint32_t entryTime = millis();
 
     if(WiFi.status() != WL_CONNECTED){
-      if(Serial.available())Serial.println("Reconnecting to WiFi...");
+      if(DEBUG)Serial.println("Reconnecting to WiFi...");
       WiFi.reconnect();
       //Automatically Reconnect to AP...
     }else if(WiFi.status() == WL_CONNECTED){
