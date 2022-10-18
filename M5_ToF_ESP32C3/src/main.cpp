@@ -1,12 +1,9 @@
 //=====Device Setting=====
-//#define AP
-//#define CLI
-#define CLI_M5STAMP
-//#define CLI_M5ATOM
 
-#ifdef AP
-  const char *ssid = "ESPAsyncWebServer";
-#elif defined CLI
+//#define CLI_XIAO_ESP32C3
+#define CLI_M5STAMP
+
+#ifdef CLI_XIAO_ESP32C3
 #elif defined CLI_M5STAMP
 #else
 #endif
@@ -67,8 +64,7 @@ void setup() {
   Serial.println();
   Serial.println("Configuring WiFi...");
 
-  #ifdef AP
-  #elif defined(CLI)
+  #ifdef defined(CLI_XIAO_ESP32C3)
   #elif defined(CLI_M5STAMP)
     pinMode(BUZZER_PIN, OUTPUT);
     digitalWrite(BUZZER_PIN,LOW);
@@ -221,7 +217,9 @@ void httpGetUltraSonic(String mode, boolean make_sound){
 
 
 void LED_Buzzer_ONOFF(){
-  #ifdef CLI_M5STAMP
+  #ifdef CLI_XIAO_ESP32C3
+    //pass
+  #elif defined(CLI_M5STAMP)
     digitalWrite(BUZZER_PIN,HIGH);
     pixels.setPixelColor(0, pixels.Color(0, 255, 255));    //Colorメソッド内の引数の順番は赤、緑、青
     pixels.show();delay(100);
