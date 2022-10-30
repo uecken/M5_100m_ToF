@@ -28,13 +28,13 @@ portMUX_TYPE mutex = portMUX_INITIALIZER_UNLOCKED;
 Ultrasonic ultrasonic(0);
 uint16_t distance;
 uint16_t distance_prev;
-static uint16_t distance_rel_th_ms = 300;
+static uint16_t distance_rel_th_ms = 200;
 String measure_state;
 
 #define TASK_DEFAULT_CORE_ID 0 //ESP32C3Uは1Coreのため
 #define TASK_STACK_DEPTH 4096UL
 #define TASK_NAME_US "UltrasonicTask"
-#define TASK_SLEEP_ULTRASONIC 15 //10ms delay
+#define TASK_SLEEP_ULTRASONIC 10 //10ms delay
 static void UltrasonicLoop(void* arg);
 
 //====LED=====
@@ -149,15 +149,16 @@ void loop(){
 
 
 static void UltrasonicLoop(void* arg){
+  static uint32_t timeout_us = TASK_SLEEP_ULTRASONIC*1000;
   while (1) {
     uint32_t entryTime = millis();
     if(sense_mode == "lap"){
       portENTER_CRITICAL_ISR(&mutex);
-      distance = ultrasonic.MeasureInMillimeters(15000);
+      distance = ultrasonic.MeasureInMillimeters(timeout_us);
       portEXIT_CRITICAL_ISR(&mutex);
       
       if(US_DEBUG)Serial.println("US measuring:"+String(distance)+",ElapsedTime:"+String(millis() - entryTime)+",Millis:"+String(millis()));
-      if((distance_prev - distance) >  distance_rel_th_ms){//距離が短くなった時のみ
+      if((distance != 0 && (distance_prev - distance) >  distance_rel_th_ms) || (distance_prev == 0 && (distance_prev < distance))){//距離が短くなった時のみ && 物体未検出から検出に映った時
           //measure_state = "measuring";
           httpGetUltraSonic(sense_mode,true);
           if(Serial.available())Serial.println(String(distance)+","+String(millis()));

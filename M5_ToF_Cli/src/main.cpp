@@ -109,6 +109,11 @@ void setup() {
       Serial.println(WiFi.localIP());
   }
 
+  //WiFi感度劣化対策　https://twitter.com/uecken/likes
+  //GPIO LOW出力で改善
+  pinMode(0,OUTPUT);
+  digitalWrite(0,LOW);
+
 
   //=====Init vl53l0x sensor==========
 

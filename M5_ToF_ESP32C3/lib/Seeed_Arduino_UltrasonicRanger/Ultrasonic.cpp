@@ -47,7 +47,7 @@ static uint32_t pulseIn(uint32_t pin, uint32_t state, uint32_t timeout = 1000000
     while (digitalRead(pin)) if (MicrosDiff(begin, micros()) >= timeout) {
             return 0;
         }
-
+    
     // wait for the pulse to start
     while (!digitalRead(pin)) if (MicrosDiff(begin, micros()) >= timeout) {
             return 0;

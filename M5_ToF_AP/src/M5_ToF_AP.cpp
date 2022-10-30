@@ -268,6 +268,11 @@ void setup(){
   M5.Lcd.fillScreen(BLACK);           // 画面の塗りつぶし　Screen fill.
   LCD_state_init();
 
+  //WiFi感度劣化対策　https://twitter.com/uecken/likes
+  //GPIO LOW出力で改善
+  pinMode(0,OUTPUT);
+  digitalWrite(0,LOW);
+
   
   //-----Digital Out for Debug-----
   pinMode(LED_GPIO, OUTPUT);
