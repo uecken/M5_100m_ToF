@@ -25,8 +25,8 @@ https://www.seeedstudio.com/Grove-Ultrasonic-Distance-Sensor.html![M5C ToF シ�
 - 2022/10/30
   - M5ATOM/M5StickCのG0ピンをLOWに落とさないとWiFi送信電力が低下する問題の対応 
   - M5StampのG10と5Vを1KΩ抵抗でショートすると起動時にLAPモードで起動するように変更
-  
-
+  - 河川敷でM5CとM5Stampで80mの通信確認.ESP32C3の外部アンテナが必要か.
+  - TP4056、Sharp製ソーラーパネル、CR123A電池でM5StampC3U起動確認.
 - 2022/10/16
   - 親機から子機のHTTP返答が遅くなる、または子機のHTTP受信が遅くなる
     - → 15回目の送信以降で遅くなる
