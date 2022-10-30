@@ -32,5 +32,5 @@ https://www.seeedstudio.com/Grove-Ultrasonic-Distance-Sensor.html![M5C ToF シ�
     - → 15回目の送信以降で遅くなる
     - → ☆Serial.available()かどうか、全て判定しないと遅くなる
   - 90mで-92dBmとぎりぎり
-  - Start状態で、Start押されたときAPのLEDをON/OFFさせたい　→ LAPモードにして確認すればよい
+  - Start状態で、Start押されたときAPのLEDをON/OFFさせたい　→ LAPモードにして確認すればよい → OFF/ONさせるように変更.
   - M5Stampの消費電力が少なすぎて、バッテリーからの供給電源が落ちてしまう。リチウム3本にするか？
