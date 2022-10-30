@@ -1,4 +1,3 @@
-//=====Device Setting=====
 
 //#define CLI_XIAO_ESP32C3
 #define CLI_M5STAMP
@@ -60,6 +59,11 @@ void httpGetUltraSonic(String mode,boolean make_sound);
 //=====M5StampC3U=====
 #include <M5Unified.h>
 
+
+String sense_mode = "start";
+bool long_press_1s;
+bool long_press_2s;
+
 void setup() {
   M5.begin();
   Serial.println();
@@ -74,6 +78,10 @@ void setup() {
     WiFi.mode(WIFI_STA);
     if (WIFI_SSID[0] != '\0')WiFi.begin(WIFI_SSID, WIFI_PASSPHRASE);
     else WiFi.begin();
+
+    pinMode(10,INPUT_PULLDOWN);
+    if(digitalRead(10) == HIGH) sense_mode = "lap";
+
   #else
   #endif
   
@@ -95,9 +103,7 @@ void Buzzer_ONOFF(int buzzer_cnt){
   #endif
 }
 
-String sense_mode = "start";
-bool long_press_1s;
-bool long_press_2s;
+
 
 void loop(){
   M5.update();
