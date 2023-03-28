@@ -1,19 +1,23 @@
 #include <Arduino.h>
+//#include <driver/rtc_io.h>
+
+#define Model_SolarChargerSupercapacita_with_Deepsleep
 
 #define Model_SolarChargerCR123A_with_Deepsleep
-//#ifdef  Model_SolarChargerCR123A_with_Deepsleep
-RTC_DATA_ATTR boolean force_deepsleep = false;
-//#endif
+#ifdef  Model_SolarChargerCR123A_with_Deepsleep
+  RTC_DATA_ATTR boolean force_deepsleep = false;
+#endif
 
 #define CLI_XIAO_ESP32C3
-//#define CLI_M5STAMPs
+//#define CLI_M5STAMP
 
 #if defined(CLI_XIAO_ESP32C3)
-  #define LED_PIN D9
-  #define BUZZER_PIN D10
+  #define LED_PIN D9 //Digital out Lowにしないと何故か1V程度ある
+  #define BUZZER_PIN D5 //Default D10. D9 is bad. D6 is noisy at first buzzer.
   #define BUTTON_PIN D7
   #define BUTTON_PIN_D8 D8
   #define BUTTON_PIN_ D1
+  #define Vcc_MONITOR_PIN D3
   //#define YOBI_PIN D9
   //static constexpr int LED_PIN = D6;
   //static constexpr int BUEER_PIN = D9;
@@ -32,10 +36,12 @@ static const char WIFI_SSID[] = "ESPAsyncWebServer";
 static const char WIFI_PASSPHRASE[] = "";
 static const char SERVER[] = "192.168.4.1";
 int a = esp_wifi_set_protocol( WIFI_IF_STA, WIFI_PROTOCOL_11B );
-//int c = esp_wifi_set_max_tx_power(80); //20dBm https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_wifi.html
+int c = esp_wifi_set_max_tx_power(80); //20dBm https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_wifi.html
 //int c = esp_wifi_set_max_tx_power(66); //16dBm https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_wifi.html
-int c = esp_wifi_set_max_tx_power(56); //16dBm https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_wifi.html
-
+//int c = esp_wifi_set_max_tx_power(56); //16dBm https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_wifi.html
+int d = esp_wifi_config_80211_tx_rate(WIFI_IF_STA, WIFI_PHY_RATE_2M_S);  // Sensitibity -96dBm
+       //Long->192us,Short->96us, Ref:https://www.silex.jp/blog/wireless/2013/12/post-8.html
+       //Ref: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_wifi.html#_CPPv416wifi_interface_t
 String rssi;
 
 #define TASK_NAME_WIFI "WiFiCheckTask"
@@ -82,6 +88,8 @@ boolean httpGetUltraSonic(String mode,boolean make_sound);
 void LED_Buzzer_ONOFF();
 void LED_ONOFF(int LED_GPIO);
 void magnetSwitchStarterAfterPowerOn();
+float get_battery_voltage();
+const float SLEEP_VCC_THRESHOLD = 3.3;
 
 //======= Timer ======
 int timer_after_wifi_start = 2000;
@@ -99,17 +107,27 @@ void setup() {
   Serial.println();
   
   #if defined(CLI_XIAO_ESP32C3)
+    pinMode(LED_PIN, OUTPUT);
+    digitalWrite(LED_PIN,HIGH);
+    delay(100);
+    digitalWrite(LED_PIN,LOW);
+
     pinMode(BUZZER_PIN, OUTPUT);
     digitalWrite(BUZZER_PIN,LOW);
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(BUTTON_PIN_D8, INPUT_PULLUP);
-    pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN,LOW);
     
     pinMode(D0,INPUT_PULLUP);
-    pinMode(D1,INPUT_PULLDOWN);
-    
+    pinMode(D1,OUTPUT);
+    digitalWrite(D1,LOW); //!!!! LDO OFF !!!!
 
+    //pinMode(D1,OUTPUT);
+    //digitalWrite(D1,HIGH);
+
+    pinMode(Vcc_MONITOR_PIN,INPUT);
+    
+    //pinMode(D6,OUTPUT); //D6は正常に使えない
+    //digitalWrite(D6,HIGH);
 
     //pinMode(YOBI_PIN, OUTPUT);
     //digitalWrite(YOBI_PIN,LOW);
@@ -137,14 +155,20 @@ void setup() {
   #else
   #endif
 
-  #if defined(Model_SolarChargerCR123A_with_Deepsleep)
+  //#if defined(Model_SolarChargerCR123A_with_Deepsleep)
   //pinMode(D2,INPUT_PULLDOWN);
-  pinMode(D2,INPUT_PULLDOWN);
+  //pinMode(D2,INPUT);
 
   //digitalWrite(GPIO_NUM_5, LOW);
+  //#define DEBUG_BatteryVoltageRead
+  #if defined(DEBUG_BatteryVoltageRead)
+  delay(30000);
+  float aaaa = get_battery_voltage();
+  #endif
 
   //if(digitalRead(D2)==LOW){
-  if(digitalRead(D2)==HIGH){
+  //if(digitalRead(D2)==HIGH || (get_battery_voltage() < SLEEP_VCC_THRESHOLD)){
+  if((get_battery_voltage() < SLEEP_VCC_THRESHOLD)){
     /*
     ::esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
     
@@ -160,30 +184,36 @@ void setup() {
     }
     */
 
-    pinMode(GPIO_NUM_5,OUTPUT);//D3
-    digitalWrite(GPIO_NUM_5, HIGH);
+    //pinMode(GPIO_NUM_5,OUTPUT);//D3
+    //digitalWrite(GPIO_NUM_5, HIGH);
     //gpio_hold_en(GPIO_NUM_5);
+    
+    //gpio_hold_en(GPIO_NUM_3); //D0, GPIO_NUM3
+    //gpio_deep_sleep_hold_en();
 
+    // Cannot import  #include <driver/rtc_io.h>
+	  //rtc_gpio_set_direction((gpio_num_t), RTC_GPIO_MODE_INPUT_ONLY);
+  	//rtc_gpio_pulldown_en((gpiao_num_t)PIN_LORA_DIO_1);
+  	//rtc_gpio_set_direction((gpio_num_t)GPIO_NUM_3 RTC_GPIO_MODE_OUTPUT_ONLY);
+	  //rtc_gpio_set_level((gpio_num_t)GPIO_NUM_3, HIGH);
+    
 
-    force_deepsleep = false;
+    //force_deepsleep = false;
     ::esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
-    ::esp_deep_sleep_enable_gpio_wakeup(BIT(D2), ESP_GPIO_WAKEUP_GPIO_LOW);// Lowを使う時はプルアップしないと上手く行かない。
+    ::esp_deep_sleep_enable_gpio_wakeup(BIT(D2), ESP_GPIO_WAKEUP_GPIO_HIGH);// Lowを使う時はプルアップしないと上手く行かない。
     //::esp_deep_sleep_enable_gpio_wakeup(BIT(D3), ESP_GPIO_WAKEUP_GPIO_HIGH);
     ::esp_deep_sleep_start();
   }
-  /*
-  else if(digitalRead(D2)==HIGH){
-    //pinMode(GPIO_NUM_5,INPUT_PULLDOWN);//D3
-    pinMode(GPIO_NUM_5,OUTPUT);//D3
-    digitalWrite(GPIO_NUM_5, LOW);
-  }
-  */
-  //pinMode(GPIO_NUM_5,OUTPUT);//D3
-  //digitalWrite(GPIO_NUM_5, LOW);
+
+
+  //#define SolarPowerOFF_and_BatteryPerform
+  #if defined(SolarPowerOFF_and_BatteryPerform)
   pinMode(D3,OUTPUT);//D3
   digitalWrite(D3, LOW);
-  
   #endif
+  
+
+
   /*
   if(force_deepsleep){
     force_deepsleep = false;
@@ -205,18 +235,18 @@ void setup() {
 
     //xTaskCreatePinnedToCore(UltrasonicLoop, TASK_NAME_US, TASK_STACK_DEPTH, NULL, 2, NULL, TASK_DEFAULT_CORE_ID);
 
-    if(digitalRead(D0)==LOW){
+    if(digitalRead(D0)==HIGH){
       magnetSwitchStarterAfterPowerOn();    
     }
   //}
 
   //Deep-sleep
-  #if defined(Model_SolarChargerCR123A_with_Deepsleep)
-  if(digitalRead(D2)==LOW){
+  #if defined(Model_SolarChargerCR123A_with_Deepsleep) || defined(Model_SolarChargerSupercapacita_with_Deepsleep)
+  //if(digitalRead(D2)==LOW){
     //force_deepsleep = true;
     ::esp_deep_sleep_enable_gpio_wakeup(BIT(D2), ESP_GPIO_WAKEUP_GPIO_HIGH);
     ::esp_deep_sleep_start();
-  }
+  //}
   #endif
 
   //LED_Buzzer_ONOFF();
@@ -241,6 +271,16 @@ void Buzzer_ONOFF(int buzzer_cnt){
   #endif
 }
 
+float get_battery_voltage(){
+  uint32_t Vbatt = 0;
+  uint8_t Nsmp =16;
+  for(int i = 0; i < Nsmp; i++) {
+    Vbatt = Vbatt + analogReadMilliVolts(Vcc_MONITOR_PIN); // ADC with correction   
+  }
+  float Vbattf = 2 * Vbatt / Nsmp / 1000.0;     // attenuation ratio 1/2, mV --> V
+  if(DEBUG)Serial.println(Vbattf, 4);
+  return Vbattf;
+}
 
 
 void loop(){
@@ -426,7 +466,12 @@ boolean httpGetUltraSonic(String mode, boolean make_sound){
     if(WiFi.status() == WL_CONNECTED){
       rssi = String(WiFi.RSSI());
     }
-    http.begin("http://192.168.4.1/update?output="+mode+"&state=0&rssi="+String(rssi)); // starter
+
+    float vbatt_f = get_battery_voltage();
+    char vbatt_c[6];
+    snprintf(vbatt_c, 6, "%f", vbatt_f);
+
+    http.begin("http://192.168.4.1/update?output="+mode+"&state=0&rssi="+String(rssi)+"&vbat="+vbatt_c); // starter
     //http.begin("http://192.168.4.1/update?output=vl53l0x_stop&state=0&rssi="+String(rssi)); // stopper
     int httpCode = http.GET(); // Make the request
     long tmp_stop_millis = millis();
