@@ -2,7 +2,8 @@
 //#include <driver/rtc_io.h>
 
 #define Model_SolarChargerSupercapacita_with_Deepsleep
-
+//#define RST_3V3_and_GND_with_Short
+#define DoDeepsleep
 #define Model_SolarChargerCR123A_with_Deepsleep
 #ifdef  Model_SolarChargerCR123A_with_Deepsleep
   RTC_DATA_ATTR boolean force_deepsleep = false;
@@ -18,6 +19,7 @@
   #define BUTTON_PIN_D8 D8
   #define BUTTON_PIN_ D1
   #define Vcc_MONITOR_PIN D3
+  #define DEEPSLEEP_WAKEUP_PIN D2
   //#define YOBI_PIN D9
   //static constexpr int LED_PIN = D6;
   //static constexpr int BUEER_PIN = D9;
@@ -90,6 +92,7 @@ void LED_ONOFF(int LED_GPIO);
 void magnetSwitchStarterAfterPowerOn();
 float get_battery_voltage();
 const float SLEEP_VCC_THRESHOLD = 3.3;
+void gotoDeepSleep();
 
 //======= Timer ======
 int timer_after_wifi_start = 2000;
@@ -107,6 +110,21 @@ void setup() {
   Serial.println();
   
   #if defined(CLI_XIAO_ESP32C3)
+    esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+    switch(wakeup_reason)
+    {
+      case ESP_SLEEP_WAKEUP_EXT0 : Serial.println("Wakeup caused by external signal using RTC_IO"); break;
+      case ESP_SLEEP_WAKEUP_EXT1 : Serial.println("Wakeup caused by external signal using RTC_CNTL"); break;
+      case ESP_SLEEP_WAKEUP_TIMER : Serial.println("Wakeup caused by timer"); break;
+      case ESP_SLEEP_WAKEUP_TOUCHPAD : Serial.println("Wakeup caused by touchpad"); break;
+      case ESP_SLEEP_WAKEUP_ULP : Serial.println("Wakeup caused by ULP program"); break;
+      default : Serial.printf("Wakeup was not caused by deep sleep: %d\n",wakeup_reason); 
+                #if defined (RST_3V3_and_GND_with_Short)
+                  gotoDeepSleep();
+                #endif
+                break;
+    }
+
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN,HIGH);
     delay(100);
@@ -168,6 +186,7 @@ void setup() {
 
   //if(digitalRead(D2)==LOW){
   //if(digitalRead(D2)==HIGH || (get_battery_voltage() < SLEEP_VCC_THRESHOLD)){
+  #if (defined(Model_SolarChargerCR123A_with_Deepsleep) || defined(Model_SolarChargerSupercapacita_with_Deepsleep)) && defined(DoDeepsleep) && !defined(RST_3V3_and_GND_with_Short)
   if((get_battery_voltage() < SLEEP_VCC_THRESHOLD)){
     /*
     ::esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
@@ -199,11 +218,12 @@ void setup() {
     
 
     //force_deepsleep = false;
-    ::esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
-    ::esp_deep_sleep_enable_gpio_wakeup(BIT(D2), ESP_GPIO_WAKEUP_GPIO_HIGH);// Lowを使う時はプルアップしないと上手く行かない。
-    //::esp_deep_sleep_enable_gpio_wakeup(BIT(D3), ESP_GPIO_WAKEUP_GPIO_HIGH);
-    ::esp_deep_sleep_start();
+    //::esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
+    //::esp_deep_sleep_enable_gpio_wakeup(BIT(DEEPSLEEP_WAKEUP_PIN), ESP_GPIO_WAKEUP_GPIO_HIGH);// Lowを使う時はプルアップしないと上手く行かない。
+    //::esp_deep_sleep_start();
+    gotoDeepSleep();
   }
+  #endif
 
 
   //#define SolarPowerOFF_and_BatteryPerform
@@ -241,11 +261,10 @@ void setup() {
   //}
 
   //Deep-sleep
-  #if defined(Model_SolarChargerCR123A_with_Deepsleep) || defined(Model_SolarChargerSupercapacita_with_Deepsleep)
-  //if(digitalRead(D2)==LOW){
+  #if (defined(Model_SolarChargerCR123A_with_Deepsleep) || defined(Model_SolarChargerSupercapacita_with_Deepsleep)) && defined(DoDeepsleep)
+  //if(digitalRead(DEEPSLEEP_WAKEUP_PIN)==LOW){
     //force_deepsleep = true;
-    ::esp_deep_sleep_enable_gpio_wakeup(BIT(D2), ESP_GPIO_WAKEUP_GPIO_HIGH);
-    ::esp_deep_sleep_start();
+    gotoDeepSleep();
   //}
   #endif
 
@@ -518,4 +537,29 @@ void LED_ONOFF(int LED_GPIO){
     delay(50);
     digitalWrite(LED_GPIO, LOW);
     delay(50);
+}
+
+
+void print_wakeup_reason(){
+  esp_sleep_wakeup_cause_t wakeup_reason;
+
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+
+  switch(wakeup_reason)
+  {
+    case ESP_SLEEP_WAKEUP_EXT0 : Serial.println("Wakeup caused by external signal using RTC_IO"); break;
+    case ESP_SLEEP_WAKEUP_EXT1 : Serial.println("Wakeup caused by external signal using RTC_CNTL"); break;
+    case ESP_SLEEP_WAKEUP_TIMER : Serial.println("Wakeup caused by timer"); break;
+    case ESP_SLEEP_WAKEUP_TOUCHPAD : Serial.println("Wakeup caused by touchpad"); break;
+    case ESP_SLEEP_WAKEUP_ULP : Serial.println("Wakeup caused by ULP program"); break;
+    default : Serial.printf("Wakeup was not caused by deep sleep: %d\n",wakeup_reason); break;
+  }
+}
+
+
+void gotoDeepSleep(){
+    ::esp_deep_sleep_enable_gpio_wakeup(BIT(DEEPSLEEP_WAKEUP_PIN), ESP_GPIO_WAKEUP_GPIO_HIGH);// Lowを使う時はプルアップしないと上手く行かない。
+    //::esp_deep_sleep_enable_gpio_wakeup(BIT(D3), ESP_GPIO_WAKEUP_GPIO_HIGH);
+    ::esp_deep_sleep_start();
+    //dee
 }
