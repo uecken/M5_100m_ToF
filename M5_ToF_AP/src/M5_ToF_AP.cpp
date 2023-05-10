@@ -45,7 +45,7 @@ void LCD_state_stop();
 void LCD_state_start();
 void LCD_state_lap();
 void LED_ONOFF();
-void LED_ONOFF_Reverse();
+void LED_ONOFF_Reverse(int LED_GPIO);
 
 
 String measureState= "init";
@@ -57,6 +57,7 @@ float lap_time_ms = 0;
 String rssi;
 
 int LED_GPIO = 10;
+int LED_GPIO2 = 26;
 boolean DEBUG_DISTANCE = true;
 boolean HTTP_TIME_DEBUG = true;
 
@@ -313,6 +314,7 @@ void setup(){
         digitalWrite(LED_GPIO, HIGH); //M5C ON // ESP32 OFF
       }
       else if(get_param1=="vl53l0x_start"){
+        digitalWrite(LED_GPIO, HIGH); //M5C OFF
         request->send(200, "text/plain", "start");
         //delay(110);//stopperがhttpgetを受信してから、starterの音声出力までの遅延が約150msのため測定開始を遅らせる
         delay(6);//11b 1Mbps
@@ -326,6 +328,7 @@ void setup(){
         if(HTTP_TIME_DEBUG) Serial.println("http-process-time:"+String(httpget_return_time - httpget_rx_time));
         if(HTTP_TIME_DEBUG) Serial.println("stop:"+String(millis()));
         //digitalWrite(LED_GPIO, LOW); //M5C ON // ESP32 OFF //timestartと同時点灯させる
+        digitalWrite(LED_GPIO, LOW);//M5C ON
       }
       else if(get_param1=="vl53l0x_stop"){
         measureState = "measured";
@@ -362,7 +365,17 @@ void setup(){
         request->send(200, "text/plain", String(elapsed_time_ms/1000.0).c_str()+String(",")+measureState+String(",")+vl53l0xStopperState+String(",")+rssi.c_str()+String(",")+String(lap_time_ms/1000.0).c_str()); //http response
         Serial.print(rssi);
         //https://randomnerdtutorials.com/esp32-http-get-post-arduino/#http-get-2
-      }/*
+      }
+      else if(get_param1=="led_onoff"){
+        LED_ONOFF_Reverse(LED_GPIO2);
+        //digitalWrite(LED_GPIO, HIGH); //M5C OFF
+        //delay(100);
+        //digitalWrite(LED_GPIO, LOW); //M5C OFF
+        request->send(200, "text/plain", "OK");
+        Serial.print("led_onoff");
+        //https://randomnerdtutorials.com/esp32-http-get-post-arduino/#http-get-2
+      }
+      /*
       else if(get_param1=="rssi"){
         rssi = String(get_param2);
         request->send(200, "text/plain", rssi.c_str()); //http response
@@ -445,10 +458,11 @@ void LED_ONOFF(){
   digitalWrite(LED_GPIO, !digitalRead(LED_GPIO));
 }
 
-void LED_ONOFF_Reverse(){
-    digitalWrite(LED_GPIO, !digitalRead(LED_GPIO));
-    delay(100);
-    digitalWrite(LED_GPIO, !digitalRead(LED_GPIO));
+void LED_ONOFF_Reverse(int LED_GPIO2){
+    pinMode(LED_GPIO2, OUTPUT);
+    digitalWrite(LED_GPIO2, HIGH);
+    delay(200);
+    digitalWrite(LED_GPIO2, LOW);
 }
 
 long millisPrevious_Distance_dbg = 0;
