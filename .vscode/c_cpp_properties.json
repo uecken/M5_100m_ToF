@@ -3,7 +3,12 @@
         {
             "name": "Win32",
             "includePath": [
-                "${default}"
+                "${default}",
+                "C:/Users/the_n/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
+                "C:/Users/the_n/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp_wifi/include",
+                "C:/Users/the_n/.platformio/packages/framework-arduinoespressif32/cores/esp32",
+                "C:/Users/the_n/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp_common/include",
+                "${workspaceFolder}/M5_ToF_ESP32C3/.pio/libdeps/esp32-c3-devkitm-1/Grove Ultrasonic Ranger"
             ],
             "windowsSdkVersion": "10.0.18362.0",
             "compilerPath": "D:\\VisualStudio-IDE\\VC\\Tools\\MSVC\\14.28.29333\\bin\\Hostx64\\x64\\cl.exe",
