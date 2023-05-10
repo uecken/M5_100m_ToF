@@ -13,11 +13,12 @@
 //#define CLI_M5STAMP
 
 #if defined(CLI_XIAO_ESP32C3)
-  #define LED_PIN D9 //Digital out Lowにしないと何故か1V程度ある
-  #define BUZZER_PIN D5 //Default D10. D9 is bad. D6 is noisy at first buzzer.
+  #define LED_PIN D10 //Digital out Lowにしないと何故か1V程度ある
+  #define BUZZER_PIN D4 //Default D10. D9 is bad. D6 is noisy at first buzzer.
   #define BUTTON_PIN D7
   #define BUTTON_PIN_D8 D8
-  #define BUTTON_PIN_ D1
+  //#define BUTTON_PIN_ D1
+  #define LDO_PIN D1
   #define Vcc_MONITOR_PIN D3
   #define DEEPSLEEP_WAKEUP_PIN D2
   //#define YOBI_PIN D9
@@ -110,6 +111,7 @@ void setup() {
   Serial.println();
   
   #if defined(CLI_XIAO_ESP32C3)
+  /*
     esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
     switch(wakeup_reason)
     {
@@ -124,6 +126,7 @@ void setup() {
                 #endif
                 break;
     }
+  */
 
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN,HIGH);
@@ -136,8 +139,8 @@ void setup() {
     pinMode(BUTTON_PIN_D8, INPUT_PULLUP);
     
     pinMode(D0,INPUT_PULLUP);
-    pinMode(D1,OUTPUT);
-    digitalWrite(D1,LOW); //!!!! LDO OFF !!!!
+    pinMode(LDO_PIN,OUTPUT);
+    digitalWrite(LDO_PIN,LOW); //!!!! LDO OFF !!!!
 
     //pinMode(D1,OUTPUT);
     //digitalWrite(D1,HIGH);
@@ -221,7 +224,7 @@ void setup() {
     //::esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
     //::esp_deep_sleep_enable_gpio_wakeup(BIT(DEEPSLEEP_WAKEUP_PIN), ESP_GPIO_WAKEUP_GPIO_HIGH);// Lowを使う時はプルアップしないと上手く行かない。
     //::esp_deep_sleep_start();
-    gotoDeepSleep();
+    //gotoDeepSleep();
   }
   #endif
 
@@ -267,6 +270,7 @@ void setup() {
     gotoDeepSleep();
   //}
   #endif
+
 
   //LED_Buzzer_ONOFF();
 }
@@ -559,7 +563,6 @@ void print_wakeup_reason(){
 
 void gotoDeepSleep(){
     ::esp_deep_sleep_enable_gpio_wakeup(BIT(DEEPSLEEP_WAKEUP_PIN), ESP_GPIO_WAKEUP_GPIO_HIGH);// Lowを使う時はプルアップしないと上手く行かない。
-    //::esp_deep_sleep_enable_gpio_wakeup(BIT(D3), ESP_GPIO_WAKEUP_GPIO_HIGH);
     ::esp_deep_sleep_start();
     //dee
 }

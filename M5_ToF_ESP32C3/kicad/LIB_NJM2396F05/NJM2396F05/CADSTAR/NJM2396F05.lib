@@ -1,0 +1,16 @@
+.NJM2396F05 :1 ;LDO Voltage Regulators LDO w/On/Off Cntrl
+TO254P480X1000X1900-4P
+*STM IC
+*NGS
+*PLB 1="VIN" 2="VOUT" 3="GND" 4="ON/OFF CONTROL"
+*MXP 4
+*DFN NJM2396F05
+~!Mouser Part Number (513-NJM2396F05)
+~!Link Mouser Price/Stock (https://www.mouser.co.uk/ProductDetail/NJR/NJM2396F05?qs=uTtZEXA6qg9fe3K1fQPnMA%3D%3D)
+~!Manufacturer_Name (New Japan Radio)
+~!Manufacturer_Part_Number (NJM2396F05)
+~!Link Datasheet (https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-DGA25/1802734.pdf)
+~!Height (4.8mm)
+~!3D_Model (NJM2396F05)
+NJM2396F05
+1.1!U 2.1!U 3.1!U 4.1!U 

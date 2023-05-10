@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP NJM2396F05
+D LDO Voltage Regulators LDO w/On/Off Cntrl
+K
+F https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-DGA25/1802734.pdf
+$ENDCMP
+#
+#End Doc Library

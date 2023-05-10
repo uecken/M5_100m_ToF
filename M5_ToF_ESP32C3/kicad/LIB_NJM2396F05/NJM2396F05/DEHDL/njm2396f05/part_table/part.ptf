@@ -1,0 +1,11 @@
+FILE_TYPE = MULTI_PHYS_TABLE;
+
+PART 'NJM2396F05'
+CLASS = IC
+{========================================================================================}
+:"MANUFACTURER_NAME", "MANUFACTURER_PART_NUMBER"= "PART_NUMBER", "JEDEC_TYPE", "PACK_TYPE", "MOUSER_PART_NUMBER", "MOUSER_PRICE/STOCK", "DESCRIPTION", "DATASHEET", "HEIGHT";
+{========================================================================================}
+ "New Japan Radio", "NJM2396F05" (!) = "", "TO254P480X1000X1900-4P", "Transistor Outline, Vertical", "513-NJM2396F05", "https://www.mouser.co.uk/ProductDetail/NJR/NJM2396F05?qs=uTtZEXA6qg9fe3K1fQPnMA%3D%3D", "LDO Voltage Regulators LDO w/On/Off Cntrl", "https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-DGA25/1802734.pdf", "4.8 mm"
+END_PART
+
+END.
