@@ -14,7 +14,7 @@
 
 #if defined(CLI_XIAO_ESP32C3)
   #define LED_PIN D10 //Digital out Lowにしないと何故か1V程度ある
-  #define BUZZER_PIN D4 //Default D10. D9 is bad. D6 is noisy at first buzzer.
+  #define BUZZER_PIN D4 //Default D10. D9 is bad due to internal pulll-up. D6 is noisy at first buzzer.
   #define BUTTON_PIN D7
   #define BUTTON_PIN_D8 D8
   //#define BUTTON_PIN_ D1
@@ -140,7 +140,9 @@ void setup() {
     
     pinMode(D0,INPUT_PULLUP);
     pinMode(LDO_PIN,OUTPUT);
-    digitalWrite(LDO_PIN,LOW); //!!!! LDO OFF !!!!
+    digitalWrite(LDO_PIN,LOW); //!!!! LDO OFF !!!! v0.3
+    digitalWrite(LDO_PIN,HIGH); //!!!! LDO ON !!!! v0.4
+    
 
     //pinMode(D1,OUTPUT);
     //digitalWrite(D1,HIGH);
@@ -224,7 +226,7 @@ void setup() {
     //::esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
     //::esp_deep_sleep_enable_gpio_wakeup(BIT(DEEPSLEEP_WAKEUP_PIN), ESP_GPIO_WAKEUP_GPIO_HIGH);// Lowを使う時はプルアップしないと上手く行かない。
     //::esp_deep_sleep_start();
-    //gotoDeepSleep();
+    gotoDeepSleep();
   }
   #endif
 

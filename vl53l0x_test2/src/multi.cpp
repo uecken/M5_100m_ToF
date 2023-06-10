@@ -64,7 +64,7 @@ void updateDisplay(VL53L0X sensor){
   M5.Lcd.printf("%u,%u,%u        ",sensor.min_distance,sensor.distance,sensor.meas_time_diff);
 
 
-  if(gSensor[0].distance < 500 & gSensor[1].distance < 500 ){
+  if((gSensor[0].distance < 400 & gSensor[1].distance < 400) & ((gSensor[0].distance > 100 & gSensor[1].distance > 100 ))) {
     M5.Lcd.setCursor(5, 35);
     M5.Lcd.printf("Detected.");
   }
@@ -106,8 +106,8 @@ void setup() {
     if (gSensor[i].init() == true)
     {
       gSensor[i].setTimeout(1000);
-      gSensor[i].setSignalRateLimit(2); 
-      gSensor[i].setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 12); //Pre: 12 to 18 (initialized to 14 by default)
+      gSensor[i].setSignalRateLimit(1);  //0.25で1.2m  1.0で屋内50cm/屋外30cm
+      gSensor[i].setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 12); //Pre: 12 to 18 (initialized to 14 by default) //12&8で50cm
       gSensor[i].setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 8); //Final: 8 to 14 (initialized to 10 by default)
       gSensor[i].setMeasurementTimingBudget(20000); 
       gSensor[i].startContinuous();

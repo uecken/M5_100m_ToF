@@ -18,7 +18,8 @@
 			"path": "M5_ToF_ESP32C3"
 		},
 		{
-			"path": "vl53l0x_test"
+			"name": "vl53l0x_test2",
+			"path": "vl53l0x_test2"
 		}
 	],
 	"settings": {}

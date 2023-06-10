@@ -93,7 +93,7 @@ void setup()
   sensor.setSignalRateLimit(2); //default 0.25mcps. 低い程 微弱信号を検知する. 
                                 //5で300mm程度まで反応
                                 //2で500mmまで反応、30秒で屋外誤り無し
-                                //1.5で500mmまで反応、誤りあり
+                                //1.52で500mmまで反応、誤りあり
                                 //0.5で500mmまで反応、誤りあり
 
   //Longer periods increase the potential range of the sensor.
