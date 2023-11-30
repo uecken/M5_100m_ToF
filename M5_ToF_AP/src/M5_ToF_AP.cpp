@@ -7,7 +7,15 @@ Rui Santos
 *********/
 
 //#include <M5StickC.h>
+
+//#define m5cp
+#define esp32s3
+#if defined (m5cp)
 #include <M5StickCPlus.h>
+#elif defined(esp32s3)
+#include <Wire.h>
+#endif
+
 
 /*#include <WiFi.h>
 #include <WiFiClient.h>
@@ -40,10 +48,13 @@ const char* PARAM_INPUT_2 = "state";
 const char* PARAM_INPUT_3 = "rssi";
 AsyncWebServer server(80);
 String outputState(int output);
+
+#if defined(m5cp)
 void LCD_state_init();
 void LCD_state_stop();
 void LCD_state_start();
 void LCD_state_lap();
+#endif
 void LED_ONOFF();
 void LED_ONOFF_Reverse(int LED_GPIO);
 
@@ -262,12 +273,16 @@ boolean DEBUG_vl53l0x = 1;  //Serial Load is Heavy. If ON, sometimes unknown err
 portMUX_TYPE mutex = portMUX_INITIALIZER_UNLOCKED;
 
 void setup(){
+  #if defined(m5cp)
   M5.begin();
-  Serial.begin(115200);
+  
   M5.Lcd.setRotation(3);              // 画面の向きを変更（右横向き）Change screen orientation (left landscape orientation).
   M5.Axp.ScreenBreath(9);            // 液晶バックライト電圧設定 LCD backlight voltage setting.
   M5.Lcd.fillScreen(BLACK);           // 画面の塗りつぶし　Screen fill.
   LCD_state_init();
+  #endif
+
+  Serial.begin(115200);
 
   //WiFi感度劣化対策　https://twitter.com/uecken/likes
   //GPIO LOW出力で改善
@@ -284,6 +299,7 @@ void setup(){
   int a= esp_wifi_set_protocol( WIFI_IF_AP, WIFI_PROTOCOL_11B );
   int b = esp_wifi_config_80211_tx_rate(WIFI_IF_AP,WIFI_PHY_RATE_1M_L);
   int c = esp_wifi_set_max_tx_power(80);//20dBm https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_wifi.html
+
 
   WiFi.softAP(ssid, password);
   
@@ -357,7 +373,9 @@ void setup(){
         digitalWrite(LED_GPIO, !digitalRead(LED_GPIO));
         rssi = request->getParam(PARAM_INPUT_3)->value();
         request->send(200, "text/plain", String(elapsed_time_ms/1000.0).c_str()+String(",")+measureState+String(",")+vl53l0xStopperState+String(",")+rssi.c_str()+String(",")+String(lap_time_ms/1000.0).c_str()); //http response
+        #if defined(m5cp)
         LCD_state_lap();
+        #endif
         delay(50);
         digitalWrite(LED_GPIO, !digitalRead(LED_GPIO));
       }
@@ -417,6 +435,8 @@ void setup(){
   startMillis = millis();
 }
 
+
+#if defined(m5cp)
 void LCD_state_start(){
       M5.Lcd.setCursor(1, 65, 2);  //https://lang-ship.com/reference/unofficial/M5StickC/Tips/M5Display/
       M5.Lcd.setTextColor(WHITE, BLACK);
@@ -453,6 +473,7 @@ void LCD_state_stop(){
       M5.Lcd.setCursor(1, 85, 2);
       M5.Lcd.printf("RSSI:%s (starter)   ",rssi);
 }
+#endif
 
 void LED_ONOFF(){
   digitalWrite(LED_GPIO, !digitalRead(LED_GPIO));
@@ -464,6 +485,7 @@ void LED_ONOFF_Reverse(int LED_GPIO2){
     delay(200);
     digitalWrite(LED_GPIO2, LOW);
 }
+
 
 long millisPrevious_Distance_dbg = 0;
 int Distance_prev = 0;
@@ -480,7 +502,9 @@ void loop() {
           startMillis = millis();
           lap_time_ms = 0;
           digitalWrite(LED_GPIO, LOW);
+          #if defined(m5cp)
           LCD_state_start();
+          #endif
       }
 
       //===Distance Check===
@@ -509,9 +533,11 @@ void loop() {
       }
 
       if((millis() - millisPrevious_Distance_dbg) > Distance_dbg_intervalms ){
+        #if defined(m5cp)
         M5.Lcd.setCursor(1, 50, 2);  //https://lang-ship.com/reference/unofficial/M5StickC/Tips/M5Display/
         M5.Lcd.setTextColor(WHITE, BLACK);
         M5.Lcd.printf("Distance: %d mm", Distance);
+        #endif
         millisPrevious_Distance_dbg = millis();
       }
 
@@ -521,7 +547,9 @@ void loop() {
       if (measureStatePrev=="measuring" && measureState=="measured") {
           stopMillis = millis();
           digitalWrite(LED_GPIO, HIGH);  
+          #if defined(m5cp)
           LCD_state_stop();
+          #endif
           elapsed_time_ms = stopMillis - startMillis;
           if(DEBUG_vl53l0x){
             Serial.print(startMillis);
@@ -542,7 +570,9 @@ void loop() {
 
       //reset received by http-get
       else if (measureStatePrev=="measured" && measureState=="init") {
+          #if defined(m5cp)
           LCD_state_start();
+          #endif
       }
       
       //obstacle detected
@@ -553,7 +583,9 @@ void loop() {
           stopMillis = millis();
           elapsed_time_ms = stopMillis - startMillis;
           digitalWrite(LED_GPIO, HIGH); 
+          #if defined(m5cp)
           LCD_state_stop();
+          #endif
 
           if(DEBUG_vl53l0x){
             Serial.print(startMillis);

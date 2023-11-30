@@ -20,6 +20,10 @@
 		{
 			"name": "vl53l0x_test2",
 			"path": "vl53l0x_test2"
+		},
+		{
+			"name": "M5ToF_ESP32S3_AP",
+			"path": "M5ToF_ESP32S3_AP"
 		}
 	],
 	"settings": {}
