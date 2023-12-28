@@ -24,6 +24,9 @@
 		{
 			"name": "M5ToF_ESP32S3_AP",
 			"path": "M5ToF_ESP32S3_AP"
+		},
+		{
+			"path": "M5_ToF_ESP32C3_AP"
 		}
 	],
 	"settings": {}
